@@ -1,0 +1,11 @@
+id,nombre,descripcion
+1,Oficial,Tipo Oficial
+2,Blue,Tipo Blue
+3,MEP,Tipo MEP
+4,CCL,Tipo CCL
+5,Mayorista,Tipo Mayorista
+6,Minorista,Tipo Minorista
+7,Tarjeta,Tipo Tarjeta
+8,Turista,Tipo Turista
+9,Compra,Tipo Compra
+10,Venta,Tipo Venta

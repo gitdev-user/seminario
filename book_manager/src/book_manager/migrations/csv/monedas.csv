@@ -1,0 +1,11 @@
+id,codigo_iso,nombre,simbolo
+1,USD,Dolar estadounidense,US$
+2,ARS,Peso argentino,$
+3,EUR,Euro,€
+4,BRL,Real brasileno,R$
+5,CLP,Peso chileno,CL$
+6,UYU,Peso uruguayo,UY$
+7,GBP,Libra esterlina,£
+8,JPY,Yen japones,¥
+9,CAD,Dolar canadiense,CA$
+10,CHF,Franco suizo,CHF
