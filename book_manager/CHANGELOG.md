@@ -2,6 +2,12 @@
 
    ## [Ejercicio 3]
    ### Nuevo
+ - Se agregaron en `models.py` los modelos SQLAlchemy de todas las entidades, con sus columnas, claves primarias, claves foráneas, relaciones y restricciones de unicidad.
+
+  ---
+
+   ## [Ejercicio 3]
+   ### Nuevo
   - Se agregó la clase `ContextManager` en `connection.py` para gestionar las transacciones de la base de datos, confirmando los cambios o revirtiéndolos ante errores y cerrando las sesiones.
    
    ---
