@@ -1,5 +1,11 @@
   # CHANGELOG
 
+   ## [Ejercicio 3]
+   ### Nuevo
+  - Se agregó la clase `ContextManager` en `connection.py` para gestionar las transacciones de la base de datos, confirmando los cambios o revirtiéndolos ante errores y cerrando las sesiones.
+   
+   ---
+
    ## [Ejercicio 2]
    ### Nuevo
   - Se agrega la clase ConexionDB en connection.py para gestionar la conexión a la base de datos y se incorpora SQLAlchemy en requirements.txt.
