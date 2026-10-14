@@ -1,28 +1,29 @@
-
+"""Servicios de negocio que utilizan los repositorios SQLAlchemy de la aplicación."""
 
 from datetime import date
 from typing import List, Optional
 
 from entities.entities import Cotizacion, Editorial, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
 from repositories.repositories import (
-    IRepositorio,
-    IRepositorioCotizacion,
-    IRepositorioPrecio,
-    IRepositorioStock,
-    MemoriaRepositorioEditorial,
-    MemoriaRepositorioGenero,
-    MemoriaRepositorioLibro,
+    RepositorioCotizacion,
+    RepositorioEditorial,
+    RepositorioGenero,
+    RepositorioLibro,
+    RepositorioMoneda,
+    RepositorioPrecio,
+    RepositorioStock,
+    RepositorioTipoCotizacion,
 )
 
 class ServicioInventario:
-    """Gestiona precios y stock, manteniendo sus referencias en los libros."""
+    """Gestiona precios y stock asociados a libros mediante claves foráneas."""
 
     def __init__(
         self,
-        repositorio_libro: MemoriaRepositorioLibro,
-        repositorio_precio: IRepositorioPrecio,
-        repositorio_stock: IRepositorioStock,
-        repositorio_moneda: IRepositorio[Moneda],
+        repositorio_libro: RepositorioLibro,
+        repositorio_precio: RepositorioPrecio,
+        repositorio_stock: RepositorioStock,
+        repositorio_moneda: RepositorioMoneda,
     ):
         """Recibe los repositorios de libros, precios, stock y monedas."""
         self.repositorio_libro = repositorio_libro
@@ -31,7 +32,7 @@ class ServicioInventario:
         self.repositorio_moneda = repositorio_moneda
 
     def guardar_precio(self, precio: Precio) -> Precio:
-        """Valida libro y moneda, guarda el precio y lo asocia al libro."""
+        """Valida libro y moneda y guarda el precio identificado por libro_id."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {precio.libro_id}.")
@@ -46,12 +47,10 @@ class ServicioInventario:
         else:
             guardado = self.repositorio_precio.actualizar(precio)
 
-        libro.precio = guardado
-        self.repositorio_libro.actualizar(libro)
         return guardado
 
     def guardar_stock(self, stock: Stock) -> Stock:
-        """Valida el libro, guarda el stock y lo asocia al libro."""
+        """Valida el libro y guarda el stock identificado por libro_id."""
         libro = self.repositorio_libro.leer_por_id(stock.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {stock.libro_id}.")
@@ -61,8 +60,6 @@ class ServicioInventario:
         else:
             guardado = self.repositorio_stock.actualizar(stock)
 
-        libro.stock = guardado
-        self.repositorio_libro.actualizar(libro)
         return guardado
 
     def leer_precio_por_libro(self, libro_id: int) -> Optional[Precio]:
@@ -74,28 +71,18 @@ class ServicioInventario:
         return self.repositorio_stock.leer_por_libro(libro_id)
 
     def eliminar_precio_por_libro(self, libro_id: int) -> bool:
-        """Elimina el precio del repositorio y quita su referencia del libro."""
-        eliminado = self.repositorio_precio.eliminar(libro_id)
-        libro = self.repositorio_libro.leer_por_id(libro_id)
-        if libro is not None and libro.precio is not None:
-            libro.precio = None
-            self.repositorio_libro.actualizar(libro)
-        return eliminado
+        """Elimina el registro de precio; el libro permanece guardado."""
+        return self.repositorio_precio.eliminar(libro_id)
 
     def eliminar_stock_por_libro(self, libro_id: int) -> bool:
-        """Elimina el stock del repositorio y quita su referencia del libro."""
-        eliminado = self.repositorio_stock.eliminar(libro_id)
-        libro = self.repositorio_libro.leer_por_id(libro_id)
-        if libro is not None and libro.stock is not None:
-            libro.stock = None
-            self.repositorio_libro.actualizar(libro)
-        return eliminado
+        """Elimina el registro de stock; el libro permanece guardado."""
+        return self.repositorio_stock.eliminar(libro_id)
 
 
 class ServicioCotizacion:
     """Gestiona cotizaciones identificadas por tipo, monedas y fecha."""
 
-    def __init__(self, repositorio: IRepositorioCotizacion):
+    def __init__(self, repositorio: RepositorioCotizacion):
         """Recibe el repositorio de cotizaciones de la aplicación."""
         self.repositorio = repositorio
 
@@ -154,11 +141,11 @@ class ServicioCatalogo:
 
     def __init__(
         self,
-        repositorio: MemoriaRepositorioLibro,
-        repositorio_editorial: MemoriaRepositorioEditorial,
-        repositorio_genero: MemoriaRepositorioGenero,
-        repositorio_precio: IRepositorioPrecio,
-        repositorio_stock: IRepositorioStock,
+        repositorio: RepositorioLibro,
+        repositorio_editorial: RepositorioEditorial,
+        repositorio_genero: RepositorioGenero,
+        repositorio_precio: RepositorioPrecio,
+        repositorio_stock: RepositorioStock,
     ):
         """Recibe los repositorios de libros y sus entidades relacionadas."""
         self.repositorio = repositorio
@@ -175,9 +162,10 @@ class ServicioCatalogo:
                 libro tiene el mismo ISBN.
         """
 
+        libro_id = getattr(libro, "id", None)
         existente = self.repositorio.leer_por_isbn(libro.isbn)
 
-        if existente is not None and existente.id != libro.id:
+        if existente is not None and existente.id != libro_id:
             raise ValueError(
                 f"Ya existe un libro con ISBN '{libro.isbn}'."
             )
@@ -192,27 +180,16 @@ class ServicioCatalogo:
                 f"No existe un género asignado con ID {libro.genero.id}."
             )
 
-        if libro.id is None or self.repositorio.leer_por_id(libro.id) is None:
+        if libro_id is None or self.repositorio.leer_por_id(libro_id) is None:
             return self.repositorio.crear(libro)
 
         return self.repositorio.actualizar(libro)
 
     def eliminar(self, id: int) -> bool:
-        """Elimina precio y stock presentes antes de eliminar el libro.
+        """Elimina el libro y sus relaciones mediante la cascada del repositorio.
 
         Devuelve False si el libro no existe.
         """
-        libro = self.repositorio.leer_por_id(id)
-
-        if libro is None:
-            return False
-
-        if libro.precio is not None:
-            self.repositorio_precio.eliminar(id)
-
-        if libro.stock is not None:
-            self.repositorio_stock.eliminar(id)
-
         return self.repositorio.eliminar(id)
 
     def leer_por_id(self, id: int) -> Optional[Libro]:
@@ -229,8 +206,8 @@ class ServicioEditorial:
 
     def __init__(
         self,
-        repositorio: MemoriaRepositorioEditorial,
-        repositorio_libro: MemoriaRepositorioLibro,
+        repositorio: RepositorioEditorial,
+        repositorio_libro: RepositorioLibro,
     ):
         """Recibe los repositorios de editoriales y libros de la aplicación."""
         self.repositorio = repositorio
@@ -275,8 +252,8 @@ class ServicioGenero:
 
     def __init__(
         self,
-        repositorio: MemoriaRepositorioGenero,
-        repositorio_libro: MemoriaRepositorioLibro,
+        repositorio: RepositorioGenero,
+        repositorio_libro: RepositorioLibro,
     ):
         """Recibe los repositorios de géneros y libros de la aplicación."""
         self.repositorio = repositorio
@@ -321,10 +298,10 @@ class ServicioTipoCotizacion:
 
     def __init__(
             self, 
-            repositorio: IRepositorio[TipoCotizacion],
-            repositorio_cotizacion: IRepositorioCotizacion
+            repositorio: RepositorioTipoCotizacion,
+            repositorio_cotizacion: RepositorioCotizacion
             ):
-
+        """Recibe los repositorios de tipos de cotización y cotizaciones."""
         self.repositorio = repositorio
         self.repositorio_cotizacion = repositorio_cotizacion
 
@@ -377,9 +354,10 @@ class ServicoMoneda:
     """Gestiona las operaciones CRUD de monedas."""
 
     def __init__(self, 
-                 repositorio: IRepositorio[Moneda],
-                 repositorio_cotizacion: IRepositorioCotizacion,
-                 repositorio_precio: IRepositorioPrecio):
+                 repositorio: RepositorioMoneda,
+                 repositorio_cotizacion: RepositorioCotizacion,
+                 repositorio_precio: RepositorioPrecio):
+        """Recibe los repositorios de monedas, cotizaciones y precios."""
         self.repositorio = repositorio
         self.repositorio_cotizacion = repositorio_cotizacion
         self.repositorio_precio = repositorio_precio

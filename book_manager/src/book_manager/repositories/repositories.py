@@ -1,736 +1,809 @@
-"""Define la interfaz de repositorios y sus implementaciones en memoria."""
+"""Repositorios que persisten entidades mediante SQLAlchemy."""
 
-import abc
+from decimal import Decimal
 from datetime import date
-from typing import Generic, List, Optional, TypeVar
 
-from entities.entities import (
-    TipoCotizacion,
-    Moneda,
-    Genero,
-    Editorial,
-    Precio,
-    Stock,
-    Cotizacion,
-    Libro,
+from sqlalchemy import func, select
+from sqlalchemy.orm import Session
+
+from database.connection import ContextManager
+from entities.entities import Cotizacion, Editorial, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
+from models.models import (
+    EditorialModel, GeneroModel, LibroModel, MonedaModel,
+    PrecioModel, StockModel, TipoCotizacionModel, CotizacionModel,
 )
 
-T = TypeVar("T")
-
-class IRepositorio(abc.ABC, Generic[T]):
-  """Interfaz para repositorios que manejan entidades con operaciones CRUD básicas."""
-
-  @abc.abstractmethod
-  def crear(self, entidad: T) -> T:
-    """Crea una nueva entidad en el repositorio.
-
-    Args:
-        entidad (T): La entidad a crear.
-
-    Returns:
-        T: La entidad creada.
-
-    Raises:
-        ValueError: Si ya existe una entidad con el mismo ID.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_por_id(self, id: int) -> Optional[T]:
-    """Lee una entidad del repositorio por su ID.
-
-    Args:
-        id (int): El ID de la entidad a leer.
-
-    Returns:
-        Optional[T]: La entidad si se encuentra, None en caso contrario.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_todos(self) -> List[T]:
-    """Lee todas las entidades del repositorio.
-
-    Returns:
-        List[T]: Una lista de todas las entidades.
-    """
-    pass
-
-  @abc.abstractmethod
-  def actualizar(self, entidad: T) -> T:
-    """Actualiza una entidad existente en el repositorio.
-
-    Args:
-        entidad (T): La entidad a actualizar (debe tener un ID existente).
-
-    Returns:
-        T: La entidad actualizada.
-
-    Raises:
-        ValueError: Si no se encuentra la entidad para actualizar.
-    """
-    pass
-
-  @abc.abstractmethod
-  def eliminar(self, id: int) -> bool:
-    """Elimina una entidad del repositorio por su ID.
-
-    Args:
-        id (int): El ID de la entidad a eliminar.
-
-    Returns:
-        bool: True si la entidad fue eliminada, False si no se encontró.
-    """
-    pass
-
-class IRepositorioPrecio(abc.ABC):
-  """Interfaz para repositorios del tipo Precio."""
-
-  @abc.abstractmethod
-  def crear(self, precio: Precio) -> Precio:
-    """Crea un nuevo registro de precio para un libro.
-
-    Args:
-        precio (Precio): El objeto Precio a crear.
-
-    Returns:
-        Precio: El objeto Precio creado.
-
-    Raises:
-        ValueError: Si ya existe un precio asignado a ese mismo libro.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_por_libro(self, libro_id: int) -> Optional[Precio]:
-    """Lee el precio de un libro por su ID de libro.
-
-    Args:
-        libro_id (int): El ID del libro asociado al precio.
-
-    Returns:
-        Optional[Precio]: El objeto Precio si se encuentra, None en caso contrario.
-    """
-    pass
-
-  @abc.abstractmethod
-  def actualizar(self, precio: Precio) -> Precio:
-    """Actualiza un registro de precio existente.
-
-    Args:
-        precio (Precio): El objeto Precio a actualizar.
-
-    Returns:
-        Precio: El objeto Precio actualizado.
-
-    Raises:
-        ValueError: Si no se encuentra el precio para actualizar.
-    """
-    pass
-
-  @abc.abstractmethod
-  def eliminar(self, libro_id: int) -> bool:
-    """Elimina el registro de precio de un libro por su ID de libro.
-
-    Args:
-        libro_id (int): El ID del libro asociado al precio a eliminar.
-
-    Returns:
-        bool: True si el precio fue eliminado, False si no se encontró.
-    """
-    pass
-
-  @abc.abstractmethod
-  def existe_por_moneda(self, moneda_id: int) -> bool:
-    """Indica si algún precio utiliza la moneda indicada."""
-    pass
-
-
-class IRepositorioStock(abc.ABC):
-  """Interfaz para repositorios del tipo Stock."""
-
-  @abc.abstractmethod
-  def crear(self, stock: Stock) -> Stock:
-    """Crea un nuevo registro de stock.
-
-    Args:
-        stock (Stock): El objeto Stock a crear.
-
-    Returns:
-        Stock: El objeto Stock creado.
-
-    Raises:
-        ValueError: Si ya existe un registro de stock para el mismo libro.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_por_libro(self, libro_id: int) -> Optional['Stock']:
-    """Lee un registro de stock por ID de libro.
-
-    Args:
-        libro_id (int): El ID del libro asociado al stock.
-
-    Returns:
-        Optional[Stock]: El objeto Stock si se encuentra, None en caso contrario.
-    """
-    pass
-
-  @abc.abstractmethod
-  def actualizar(self, stock: 'Stock') -> 'Stock':
-    """Actualiza un registro de stock existente.
-
-    Args:
-        stock (Stock): El objeto Stock a actualizar (debe tener un libro_id existente).
-
-    Returns:
-        Stock: El objeto Stock actualizado.
-
-    Raises:
-        ValueError: Si no se encuentra el stock para actualizar.
-    """
-    pass
-
-  @abc.abstractmethod
-  def eliminar(self, libro_id: int) -> bool:
-    """Elimina un registro de stock por ID de libro.
-
-    Args:
-        libro_id (int): El ID del libro asociado al stock a eliminar.
-
-    Returns:
-        bool: True si el stock fue eliminado, False si no se encontró.
-    """
-    pass
-
-class IRepositorioCotizacion(abc.ABC):
-  """Interfaz para repositorios del tipo RepositorioCotizacion."""
-
-  @abc.abstractmethod
-  def crear(self, cotizacion: 'Cotizacion') -> 'Cotizacion':
-    """Crea una nueva cotización de dólar.
-
-    Args:
-        cotizacion (CotizacionDolar): El objeto CotizacionDolar a crear.
-
-    Returns:
-        CotizacionDolar: El objeto CotizacionDolar creado.
-
-    Raises:
-        ValueError: Si ya existe una cotización para el mismo tipo y fecha.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_por_tipo_moneda_origen_destino_y_fecha( self, 
-                                                    tipo_id: int, 
-                                                    moneda_origen_id: int, 
-                                                    moneda_destino_id: int, 
-                                                    fecha: date) -> Optional['Cotizacion']:
-    """Lee una cotización de dólar por tipo y fecha.
-
-    Args:
-        tipo_id (int): El ID del tipo de cotización (e.g., 'Oficial', 'Blue').
-        moneda_origen_id (int): El ID de la moneda de origen.
-        moneda_destino_id (int): El ID de la moneda de destino.
-        fecha (datetime.date): La fecha de la cotización.
-
-    Returns:
-        Optional[CotizacionDolar]: La cotización si se encuentra, None en caso contrario.
-    """
-    pass
-
-  @abc.abstractmethod
-  def leer_historico_por_tipo_moneda_origen_moneda_destino( self, 
-                                                            tipo_id: int, 
-                                                            moneda_origen_id :int, 
-                                                            moneda_destino_id: int) -> List['Cotizacion']:
-    """Lee el histórico de cotizaciones para un tipo específico.
-
-    Args:
-        tipo_id (int): El ID del tipo de cotización.
-        moneda_origen_id (int): El ID de la moneda de origen.
-        moneda_destino_id (int): El ID de la moneda de destino.
-
-    Returns:
-        List[CotizacionDolar]: Una lista de cotizaciones históricas para el tipo dado.
-    """
-    pass
-
-  @abc.abstractmethod
-  def actualizar(self, cotizacion: 'Cotizacion') -> 'Cotizacion':
-    """Actualiza una cotización de dólar existente.
-
-    Args:
-        cotizacion (CotizacionDolar): El objeto CotizacionDolar a actualizar.
-
-    Returns:
-        CotizacionDolar: El objeto CotizacionDolar actualizado.
-    """
-    pass
-
-  @abc.abstractmethod
-  def eliminar(self, 
-               tipo_id: int, 
-               moneda_origen_id: 
-               int, moneda_destino_id: 
-               int, fecha: date) -> bool:
-    """Elimina una cotización de dólar por tipo y fecha.
-
-    Args:
-        tipo_id (int): El ID del tipo de cotización.
-        moneda_origen_id (int): El ID de la moneda de origen.
-        moneda_destino_id (int): El ID de la moneda de destino.
-        fecha (datetime.date): La fecha de la cotización a eliminar.
-
-    Returns:
-        bool: True si la cotización fue eliminada, False si no se encontró.
-    """
-    pass
-
-  @abc.abstractmethod
-  def existe_por_tipo_cotizacion(self, tipo_id: int) -> bool:
-    """Indica si alguna cotización utiliza el tipo identificado por tipo_id."""
-    pass
-
-  @abc.abstractmethod
-  def existe_por_moneda(self, moneda_id: int) -> bool:
-    """Indica si la moneda se utiliza como origen o destino en cotizaciones."""
-    pass
-  
-
-class MemoriaRepositorio(IRepositorio[T]):
-    """Almacena entidades en memoria y permite realizar operaciones CRUD.
-
-    Las entidades deben tener un atributo ``id``. Los datos se conservan
-    únicamente durante la vida de la instancia del repositorio.
-    """
-
-    def __init__(self, clase_entidad: type[T]):
-        """Inicializa un repositorio vacío para el tipo de entidad indicado.
-
-        Args:
-            clase_entidad (type[T]): Clase de las entidades aceptadas al crear.
-        """
-        self.clase_modelo = clase_entidad
-        self._datos: dict[int, T] = {}
-        self._ultimo_id: int = 0
-
-    def crear(self, entidad: T) -> T:
-        """Guarda una entidad y asigna un ID si el actual es None o cero.
-
-        Args:
-            entidad (T): Entidad a guardar, con un atributo ``id``.
-
-        Returns:
-            T: La entidad guardada, con su ID asignado.
+class RepositorioEditorial():
+    """Persiste editoriales y administra las sesiones con ContextManager."""
+
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: EditorialModel) -> Editorial:
+        """Convierte un registro SQLAlchemy en una entidad Editorial."""
+        editorial = Editorial(
+            nombre=modelo.nombre,
+            grupo=modelo.grupo,
+            pais_origen=modelo.pais_origen,
+            telefono=modelo.telefono,
+            email=modelo.email,
+        )
+        editorial.id = modelo.id
+        return editorial
+
+    def crear(self, entidad: Editorial) -> Editorial:
+        """Guarda una editorial y asigna su ID después de confirmar los cambios.
 
         Raises:
-            TypeError: Si la entidad no es del tipo configurado.
-            ValueError: Si ya existe una entidad con el mismo ID.
+            TypeError: Si la entidad no es una Editorial.
+            ValueError: Si ya existe una editorial con el ID indicado.
         """
-        if not isinstance(entidad, self.clase_modelo):
-            raise TypeError(
-                f"La entidad debe ser de tipo {self.clase_modelo.__name__}."
+        if not isinstance(entidad, Editorial):
+            raise TypeError("La entidad debe ser de tipo Editorial.")
+
+        with self.contexto.transaction() as session:
+            if entidad.id is not None and session.get(EditorialModel, entidad.id):
+                raise ValueError(f"Ya existe un registro con ID {entidad.id}.")
+
+            modelo = EditorialModel(
+                nombre=entidad.nombre,
+                grupo=entidad.grupo,
+                pais_origen=entidad.pais_origen,
+                telefono=entidad.telefono,
+                email=entidad.email,
             )
+            if entidad.id is not None:
+                modelo.id = entidad.id
 
-        if entidad.id is None or entidad.id == 0:
-            self._ultimo_id += 1
-            entidad.id = self._ultimo_id
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
 
-        elif entidad.id in self._datos:
-            raise ValueError(
-                f"Ya existe un registro con ID {entidad.id}."
-            )
-
-        else:
-            self._ultimo_id = max(self._ultimo_id, entidad.id)
-
-        self._datos[entidad.id] = entidad
-
+        entidad.id = nuevo_id
         return entidad
 
-    def leer_por_id(self, id: int) -> Optional[T]:
-        """Busca una entidad por su ID.
+    def leer_por_id(self, id: int) -> Editorial | None:
+        """Obtiene una editorial por ID o devuelve None si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(EditorialModel, id)
+            return self._a_entidad(modelo) if modelo is not None else None
 
-        Args:
-            id (int): ID de la entidad buscada.
+    def leer_todos(self) -> list[Editorial]:
+        """Obtiene las editoriales ordenadas por ID como entidades de dominio."""
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(EditorialModel).order_by(EditorialModel.id))
+            return [self._a_entidad(modelo) for modelo in modelos]
 
-        Returns:
-            Optional[T]: La entidad encontrada, o None si no existe.
+    def leer_por_nombre(self, nombre: str) -> Editorial | None:
+        """Busca por nombre ignorando mayúsculas y espacios externos.
+
+        Conserva la normalización con casefold del repositorio en memoria.
         """
-        return self._datos.get(id)
+        nombre_normalizado = nombre.strip().casefold()
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(EditorialModel).order_by(EditorialModel.id))
+            for modelo in modelos:
+                if modelo.nombre.strip().casefold() == nombre_normalizado:
+                    return self._a_entidad(modelo)
+            return None
 
-    def leer_todos(self) -> List[T]:
-        """Obtiene todas las entidades almacenadas.
-
-        Returns:
-            List[T]: Una nueva lista con las entidades del repositorio.
-        """
-        return list(self._datos.values())
-
-    def actualizar(self, entidad: T) -> T:
-        """Reemplaza la entidad almacenada con el mismo ID.
-
-        Args:
-            entidad (T): Entidad con los datos actualizados y un ID existente.
-
-        Returns:
-            T: La entidad actualizada.
+    def actualizar(self, entidad: Editorial) -> Editorial:
+        """Actualiza una editorial existente y devuelve la entidad recibida.
 
         Raises:
-            ValueError: Si no existe una entidad con ese ID.
+            ValueError: Si no existe una editorial con el ID indicado.
         """
-        if entidad.id not in self._datos:
-            raise ValueError(
-                f"No se encontró el registro con ID {entidad.id} para actualizar."
-            )
+        with self.contexto.transaction() as session:
+            modelo = session.get(EditorialModel, entidad.id) if entidad.id is not None else None
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró el registro con ID {entidad.id} para actualizar."
+                )
 
-        self._datos[entidad.id] = entidad
+            modelo.nombre = entidad.nombre
+            modelo.grupo = entidad.grupo
+            modelo.pais_origen = entidad.pais_origen
+            modelo.telefono = entidad.telefono
+            modelo.email = entidad.email
 
         return entidad
 
     def eliminar(self, id: int) -> bool:
-        """Elimina la entidad identificada por su ID.
+        """Elimina una editorial; devuelve False si el ID no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(EditorialModel, id)
+            if modelo is None:
+                return False
 
-        Args:
-            id (int): ID de la entidad a eliminar.
+            session.delete(modelo)
+            return True
 
-        Returns:
-            bool: True si se eliminó la entidad, o False si no existía.
+
+class RepositorioGenero:
+    """Persiste géneros y administra las sesiones con ContextManager."""
+
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: GeneroModel) -> Genero:
+        """Convierte un registro SQLAlchemy en una entidad Genero."""
+        genero = Genero(nombre=modelo.nombre, descripcion=modelo.descripcion)
+        genero.id = modelo.id
+        return genero
+
+    def crear(self, entidad: Genero) -> Genero:
+        """Guarda un género y asigna su ID después de confirmar los cambios.
+
+        Raises:
+            TypeError: Si la entidad no es un Genero.
+            ValueError: Si ya existe un género con el ID indicado.
         """
-        if id not in self._datos:
-            return False
+        if not isinstance(entidad, Genero):
+            raise TypeError("La entidad debe ser de tipo Genero.")
 
-        del self._datos[id]
+        with self.contexto.transaction() as session:
+            if entidad.id is not None and session.get(GeneroModel, entidad.id):
+                raise ValueError(f"Ya existe un registro con ID {entidad.id}.")
 
-        return True
+            modelo = GeneroModel(nombre=entidad.nombre, descripcion=entidad.descripcion)
+            if entidad.id is not None:
+                modelo.id = entidad.id
 
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
 
-class MemoriaRepositorioTipoCotizacion(MemoriaRepositorio[TipoCotizacion]):
-    """Repositorio en memoria para entidades TipoCotizacion."""
+        entidad.id = nuevo_id
+        return entidad
 
-    def __init__(self):
-        """Inicializa un repositorio vacío de tipos de cotización."""
-        super().__init__(
-            clase_entidad=TipoCotizacion
-        )
+    def leer_por_id(self, id: int) -> Genero | None:
+        """Obtiene un género por ID o devuelve None si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(GeneroModel, id)
+            return self._a_entidad(modelo) if modelo is not None else None
 
-    def leer_por_nombre(self, nombre: str) -> Optional[TipoCotizacion]:
-        """Busca un tipo de cotización por nombre, ignorando mayúsculas y espacios externos."""
+    def leer_todos(self) -> list[Genero]:
+        """Obtiene los géneros ordenados por ID como entidades de dominio."""
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(GeneroModel).order_by(GeneroModel.id))
+            return [self._a_entidad(modelo) for modelo in modelos]
 
-        nombre = nombre.strip().casefold()
+    def leer_por_nombre(self, nombre: str) -> Genero | None:
+        """Busca por nombre ignorando mayúsculas y espacios externos.
 
-        for tipo in self._datos.values():
-            if tipo.nombre.strip().casefold() == nombre:
-                return tipo
-
-        return None
-
-
-class MemoriaRepositorioEditorial(MemoriaRepositorio[Editorial]):
-    """Repositorio en memoria para entidades Editorial."""
-
-    def __init__(self):
-        """Inicializa un repositorio vacío de editoriales."""
-        super().__init__(
-            clase_entidad=Editorial
-        )
-
-    def leer_por_nombre(self, nombre: str) -> Optional[Editorial]:
-        """Busca una editorial por su nombre.
-
-        Args:
-            nombre (str): Nombre, sin distinguir mayúsculas y minúsculas
-                ni espacios externos.
-
-        Returns:
-            Optional[Editorial]: La editorial encontrada, o None si no existe.
-        """
-        nombre_normalizado = nombre.strip().casefold()
-
-        for editorial in self._datos.values():
-            if editorial.nombre.strip().casefold() == nombre_normalizado:
-                return editorial
-
-        return None
-
-
-class MemoriaRepositorioGenero(MemoriaRepositorio[Genero]):
-    """Repositorio en memoria para entidades Genero."""
-
-    def __init__(self):
-        """Inicializa un repositorio vacío de géneros literarios."""
-        super().__init__(
-            clase_entidad=Genero
-        )
-
-    def leer_por_nombre(self, nombre: str) -> Optional[Genero]:
-        """Busca un género por su nombre.
-
-        Args:
-            nombre (str): Nombre, sin distinguir mayúsculas y minúsculas
-                ni espacios externos.
-
-        Returns:
-            Optional[Genero]: El género encontrado, o None si no existe.
+        Conserva la normalización con casefold del repositorio en memoria.
         """
         nombre_normalizado = nombre.strip().casefold()
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(GeneroModel).order_by(GeneroModel.id))
+            for modelo in modelos:
+                if modelo.nombre.strip().casefold() == nombre_normalizado:
+                    return self._a_entidad(modelo)
+            return None
 
-        for genero in self._datos.values():
-            if genero.nombre.strip().casefold() == nombre_normalizado:
-                return genero
+    def actualizar(self, entidad: Genero) -> Genero:
+        """Actualiza un género existente y devuelve la entidad recibida.
 
-        return None
-
-
-class MemoriaRepositorioMoneda(MemoriaRepositorio[Moneda]):
-    """Repositorio en memoria para entidades Moneda."""
-
-    def __init__(self):
-        """Inicializa un repositorio vacío de monedas."""
-        super().__init__(
-            clase_entidad=Moneda
-        )
-
-    def leer_por_codigo_iso(self, codigo_iso: str) -> Optional[Moneda]:
-        """Busca una moneda por su código ISO.
-
-        Args:
-            codigo_iso (str): Código ISO, sin distinguir mayúsculas y
-                minúsculas ni espacios externos.
-
-        Returns:
-            Optional[Moneda]: La moneda encontrada, o None si no existe.
+        Raises:
+            ValueError: Si no existe un género con el ID indicado.
         """
+        with self.contexto.transaction() as session:
+            modelo = session.get(GeneroModel, entidad.id) if entidad.id is not None else None
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró el registro con ID {entidad.id} para actualizar."
+                )
+
+            modelo.nombre = entidad.nombre
+            modelo.descripcion = entidad.descripcion
+
+        return entidad
+
+    def eliminar(self, id: int) -> bool:
+        """Elimina un género; devuelve False si el ID no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(GeneroModel, id)
+            if modelo is None:
+                return False
+
+            session.delete(modelo)
+            return True
+
+
+class RepositorioMoneda:
+    """Persiste monedas y administra las sesiones con ContextManager."""
+
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: MonedaModel) -> Moneda:
+        """Convierte un registro SQLAlchemy en una entidad Moneda."""
+        moneda = Moneda(
+            codigo_iso=modelo.codigo_iso,
+            nombre=modelo.nombre,
+            simbolo=modelo.simbolo,
+        )
+        moneda.id = modelo.id
+        return moneda
+
+    def crear(self, entidad: Moneda) -> Moneda:
+        """Guarda una moneda y asigna su ID después de confirmar los cambios.
+
+        Raises:
+            TypeError: Si la entidad no es una Moneda.
+            ValueError: Si ya existe una moneda con el ID indicado.
+        """
+        if not isinstance(entidad, Moneda):
+            raise TypeError("La entidad debe ser de tipo Moneda.")
+
+        with self.contexto.transaction() as session:
+            if entidad.id is not None and session.get(MonedaModel, entidad.id):
+                raise ValueError(f"Ya existe un registro con ID {entidad.id}.")
+
+            modelo = MonedaModel(
+                codigo_iso=entidad.codigo_iso,
+                nombre=entidad.nombre,
+                simbolo=entidad.simbolo,
+            )
+            if entidad.id is not None:
+                modelo.id = entidad.id
+
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
+
+        entidad.id = nuevo_id
+        return entidad
+
+    def leer_por_id(self, id: int) -> Moneda | None:
+        """Obtiene una moneda por ID o devuelve None si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(MonedaModel, id)
+            return self._a_entidad(modelo) if modelo is not None else None
+
+    def leer_todos(self) -> list[Moneda]:
+        """Obtiene las monedas ordenadas por ID como entidades de dominio."""
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(MonedaModel).order_by(MonedaModel.id))
+            return [self._a_entidad(modelo) for modelo in modelos]
+
+    def leer_por_codigo_iso(self, codigo_iso: str) -> Moneda | None:
+        """Busca por código ISO ignorando mayúsculas y espacios externos."""
         codigo_normalizado = codigo_iso.strip().upper()
-        
-        for moneda in self._datos.values():
-            if moneda.codigo_iso.strip().upper() == codigo_normalizado:
-                return moneda
-        
-        return None
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(MonedaModel).order_by(MonedaModel.id))
+            for modelo in modelos:
+                if modelo.codigo_iso.strip().upper() == codigo_normalizado:
+                    return self._a_entidad(modelo)
+            return None
+
+    def actualizar(self, entidad: Moneda) -> Moneda:
+        """Actualiza una moneda existente y devuelve la entidad recibida.
+
+        Raises:
+            ValueError: Si no existe una moneda con el ID indicado.
+        """
+        with self.contexto.transaction() as session:
+            modelo = session.get(MonedaModel, entidad.id) if entidad.id is not None else None
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró el registro con ID {entidad.id} para actualizar."
+                )
+
+            modelo.codigo_iso = entidad.codigo_iso
+            modelo.nombre = entidad.nombre
+            modelo.simbolo = entidad.simbolo
+
+        return entidad
+
+    def eliminar(self, id: int) -> bool:
+        """Elimina una moneda; devuelve False si el ID no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(MonedaModel, id)
+            if modelo is None:
+                return False
+
+            session.delete(modelo)
+            return True
 
 
-class MemoriaRepositorioLibro(MemoriaRepositorio[Libro]):
-    """Repositorio en memoria para entidades Libro."""
+class RepositorioTipoCotizacion:
+    """Persiste tipos de cotización y administra sesiones con ContextManager."""
 
-    def __init__(self):
-        """Inicializa un repositorio vacío de libros."""
-        super().__init__(
-            clase_entidad=Libro
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: TipoCotizacionModel) -> TipoCotizacion:
+        """Convierte un registro SQLAlchemy en una entidad TipoCotizacion."""
+        tipo = TipoCotizacion(nombre=modelo.nombre, descripcion=modelo.descripcion)
+        tipo.id = modelo.id
+        return tipo
+
+    def crear(self, entidad: TipoCotizacion) -> TipoCotizacion:
+        """Guarda un tipo de cotización y asigna su ID después del commit.
+
+        Raises:
+            TypeError: Si la entidad no es un TipoCotizacion.
+            ValueError: Si ya existe un registro con el ID indicado.
+        """
+        if not isinstance(entidad, TipoCotizacion):
+            raise TypeError("La entidad debe ser de tipo TipoCotizacion.")
+
+        with self.contexto.transaction() as session:
+            if entidad.id is not None and session.get(TipoCotizacionModel, entidad.id):
+                raise ValueError(f"Ya existe un registro con ID {entidad.id}.")
+
+            modelo = TipoCotizacionModel(
+                nombre=entidad.nombre,
+                descripcion=entidad.descripcion,
+            )
+            if entidad.id is not None:
+                modelo.id = entidad.id
+
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
+
+        entidad.id = nuevo_id
+        return entidad
+
+    def leer_por_id(self, id: int) -> TipoCotizacion | None:
+        """Obtiene un tipo de cotización por ID o None si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(TipoCotizacionModel, id)
+            return self._a_entidad(modelo) if modelo is not None else None
+
+    def leer_todos(self) -> list[TipoCotizacion]:
+        """Obtiene los tipos de cotización ordenados por ID."""
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(
+                select(TipoCotizacionModel).order_by(TipoCotizacionModel.id)
+            )
+            return [self._a_entidad(modelo) for modelo in modelos]
+
+    def leer_por_nombre(self, nombre: str) -> TipoCotizacion | None:
+        """Busca por nombre ignorando mayúsculas y espacios externos.
+
+        Conserva la normalización con casefold del repositorio en memoria.
+        """
+        nombre_normalizado = nombre.strip().casefold()
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(
+                select(TipoCotizacionModel).order_by(TipoCotizacionModel.id)
+            )
+            for modelo in modelos:
+                if modelo.nombre.strip().casefold() == nombre_normalizado:
+                    return self._a_entidad(modelo)
+            return None
+
+    def actualizar(self, entidad: TipoCotizacion) -> TipoCotizacion:
+        """Actualiza un tipo de cotización y devuelve la entidad recibida.
+
+        Raises:
+            ValueError: Si no existe un registro con el ID indicado.
+        """
+        with self.contexto.transaction() as session:
+            modelo = (
+                session.get(TipoCotizacionModel, entidad.id)
+                if entidad.id is not None else None
+            )
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró el registro con ID {entidad.id} para actualizar."
+                )
+
+            modelo.nombre = entidad.nombre
+            modelo.descripcion = entidad.descripcion
+
+        return entidad
+
+    def eliminar(self, id: int) -> bool:
+        """Elimina un tipo de cotización; devuelve False si el ID no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(TipoCotizacionModel, id)
+            if modelo is None:
+                return False
+
+            session.delete(modelo)
+            return True
+
+
+class RepositorioLibro:
+    """Persiste libros con sus relaciones usando ContextManager."""
+
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: LibroModel) -> Libro:
+        """Convierte el libro y sus relaciones mientras la sesión está abierta."""
+        precio = (
+            RepositorioPrecio._a_entidad(modelo.precio)
+            if modelo.precio is not None else None
+        )
+        stock = (
+            RepositorioStock._a_entidad(modelo.stock)
+            if modelo.stock is not None else None
         )
 
-    def leer_por_isbn(self, isbn: str) -> Optional[Libro]:
-        """Busca un libro por su ISBN, ignorando espacios externos.
+        libro = Libro(
+            isbn=modelo.isbn,
+            titulo=modelo.titulo,
+            autor=modelo.autor,
+            peso=modelo.peso,
+            dimensiones=modelo.dimensiones,
+            numero_paginas=modelo.numero_paginas,
+            fecha_publicacion=modelo.fecha_publicacion,
+            idioma=modelo.idioma,
+            editorial=RepositorioEditorial._a_entidad(modelo.editorial),
+            genero=RepositorioGenero._a_entidad(modelo.genero),
+            precio=precio,
+            stock=stock,
+        )
+        libro.id = modelo.id
+        return libro
 
-        Args:
-            isbn (str): ISBN del libro buscado.
+    @staticmethod
+    def _copiar_datos(modelo: LibroModel, entidad: Libro) -> None:
+        """Copia los campos y persiste solo precios y stock completos.
 
-        Returns:
-            Optional[Libro]: El libro encontrado, o None si no existe.
+        Si la entidad no incluye precio o stock, elimina esa relación
+        mediante la cascada delete-orphan definida en LibroModel.
         """
-        isbn_normalizado = isbn.strip()
+        if entidad.editorial.id is None or entidad.genero.id is None:
+            raise ValueError("La editorial y el género deben estar guardados previamente.")
+        if entidad.precio is not None and entidad.precio.moneda.id is None:
+            raise ValueError("La moneda del precio debe estar guardada previamente.")
 
-        for libro in self._datos.values():
-            if libro.isbn.strip() == isbn_normalizado:
-                return libro
+        modelo.isbn = entidad.isbn
+        modelo.titulo = entidad.titulo
+        modelo.autor = entidad.autor
+        modelo.peso = entidad.peso
+        modelo.dimensiones = entidad.dimensiones
+        modelo.numero_paginas = entidad.numero_paginas
+        modelo.fecha_publicacion = entidad.fecha_publicacion
+        modelo.idioma = entidad.idioma
+        modelo.editorial_id = entidad.editorial.id
+        modelo.genero_id = entidad.genero.id
 
-        return None
+        if entidad.precio is None:
+            modelo.precio = None
+        else:
+            if modelo.precio is None:
+                modelo.precio = PrecioModel()
+            RepositorioPrecio._copiar_datos(modelo.precio, entidad.precio)
 
+        if entidad.stock is None:
+            modelo.stock = None
+        else:
+            if modelo.stock is None:
+                modelo.stock = StockModel()
+            modelo.stock.cantidad_minima = entidad.stock.cantidad_minima
+            modelo.stock.cantidad_total = entidad.stock.cantidad_total
+
+    def crear(self, entidad: Libro) -> Libro:
+        """Guarda el libro y, si se proporcionan, su precio y stock completos.
+
+        Raises:
+            TypeError: Si la entidad no es un Libro.
+            ValueError: Si el ID ya existe o faltan IDs de sus relaciones.
+        """
+        if not isinstance(entidad, Libro):
+            raise TypeError("La entidad debe ser de tipo Libro.")
+
+        with self.contexto.transaction() as session:
+            entidad_id = getattr(entidad, "id", None)
+            if entidad_id is not None and session.get(LibroModel, entidad_id):
+                raise ValueError(f"Ya existe un registro con ID {entidad_id}.")
+
+            modelo = LibroModel()
+            if entidad_id is not None:
+                modelo.id = entidad_id
+            self._copiar_datos(modelo, entidad)
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
+
+        entidad.id = nuevo_id
+        if entidad.precio is not None:
+            entidad.precio.libro_id = nuevo_id
+        if entidad.stock is not None:
+            entidad.stock.libro_id = nuevo_id
+        return entidad
+
+    def leer_por_id(self, id: int) -> Libro | None:
+        """Obtiene un libro por ID o None si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(LibroModel, id)
+            return self._a_entidad(modelo) if modelo is not None else None
+
+    def leer_todos(self) -> list[Libro]:
+        """Obtiene los libros y sus relaciones ordenados por ID."""
+        with self.contexto.transaction() as session:
+            modelos = session.scalars(select(LibroModel).order_by(LibroModel.id))
+            return [self._a_entidad(modelo) for modelo in modelos]
+
+    def leer_por_isbn(self, isbn: str) -> Libro | None:
+        """Busca un libro por ISBN ignorando espacios externos."""
+        with self.contexto.transaction() as session:
+            consulta = select(LibroModel).where(func.trim(LibroModel.isbn) == isbn.strip())
+            modelo = session.scalars(consulta).first()
+            return self._a_entidad(modelo) if modelo is not None else None
 
     def existe_por_editorial(self, editorial_id: int) -> bool:
-        """Comprueba si algún libro utiliza la editorial indicada.
-
-        Args:
-            editorial_id (int): ID de la editorial buscada.
-
-        Returns:
-            bool: True si la editorial está utilizada, o False si no lo está.
-        """
-        for libro in self._datos.values():
-            if libro.editorial.id == editorial_id:
-                return True
-
-        return False
+        """Comprueba si algún libro utiliza la editorial indicada."""
+        with self.contexto.transaction() as session:
+            consulta = select(LibroModel.id).where(LibroModel.editorial_id == editorial_id).limit(1)
+            return session.scalar(consulta) is not None
 
     def existe_por_genero(self, genero_id: int) -> bool:
-        """Comprueba si algún libro utiliza el género indicado.
+        """Comprueba si algún libro utiliza el género indicado."""
+        with self.contexto.transaction() as session:
+            consulta = select(LibroModel.id).where(LibroModel.genero_id == genero_id).limit(1)
+            return session.scalar(consulta) is not None
 
-        Args:
-            genero_id (int): ID del género buscado.
+    def actualizar(self, entidad: Libro) -> Libro:
+        """Actualiza el libro, precio y stock; falla si el ID no existe."""
+        with self.contexto.transaction() as session:
+            entidad_id = getattr(entidad, "id", None)
+            modelo = session.get(LibroModel, entidad_id) if entidad_id is not None else None
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró el registro con ID {entidad_id} para actualizar."
+                )
+            self._copiar_datos(modelo, entidad)
 
-        Returns:
-            bool: True si el género está utilizado, o False si no lo está.
-        """
-        for libro in self._datos.values():
-            if libro.genero.id == genero_id:
-                return True
+        if entidad.precio is not None:
+            entidad.precio.libro_id = entidad_id
+        if entidad.stock is not None:
+            entidad.stock.libro_id = entidad_id
+        return entidad
 
-        return False
+    def eliminar(self, id: int) -> bool:
+        """Elimina el libro, precio y stock; devuelve False si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(LibroModel, id)
+            if modelo is None:
+                return False
+            session.delete(modelo)
+            return True
 
 
-class MemoriaRepositorioPrecio(IRepositorioPrecio):
-    """Repositorio de precios en memoria identificado por libro_id."""
+class RepositorioPrecio:
+    """Persiste precios identificados por libro_id usando ContextManager."""
 
-    def __init__(self):
-        """Inicializa un repositorio vacío de precios, indexado por ID de libro."""
-        self._datos: dict[int, Precio] = {}
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: PrecioModel) -> Precio:
+        """Convierte un registro de precio con sus campos obligatorios."""
+        return Precio(
+            libro_id=modelo.libro_id,
+            moneda=RepositorioMoneda._a_entidad(modelo.moneda),
+            precio_base=Decimal(str(modelo.precio_base)),
+        )
+
+    @staticmethod
+    def _copiar_datos(modelo: PrecioModel, precio: Precio) -> None:
+        """Copia la moneda y el importe del precio al registro SQLAlchemy."""
+        if precio.moneda.id is None:
+            raise ValueError("La moneda del precio debe estar guardada previamente.")
+        modelo.moneda_id = precio.moneda.id
+        modelo.precio_base = float(precio.precio_base)
 
     def crear(self, precio: Precio) -> Precio:
-        """Guarda y devuelve el precio recibido para su libro.
+        """Guarda un precio para un libro existente.
 
         Raises:
-            ValueError: Si ya existe un precio para el mismo libro.
+            ValueError: Si ya existe un registro de precio para el libro o
+                la moneda no tiene ID.
         """
-        if precio.libro_id in self._datos:
-            raise ValueError(
-                f"Ya existe un registro de precio para el libro {precio.libro_id}."
-            )
+        with self.contexto.transaction() as session:
+            if session.get(PrecioModel, precio.libro_id) is not None:
+                raise ValueError(
+                    f"Ya existe un registro de precio para el libro {precio.libro_id}."
+                )
 
-        self._datos[precio.libro_id] = precio
+            modelo = PrecioModel(libro_id=precio.libro_id)
+            self._copiar_datos(modelo, precio)
+            session.add(modelo)
+
         return precio
 
-    def leer_por_libro(self, libro_id: int) -> Optional[Precio]:
-        """Devuelve el precio del libro indicado, o None si no está registrado."""
-        return self._datos.get(libro_id)
+    def leer_por_libro(self, libro_id: int) -> Precio | None:
+        """Obtiene el precio del libro o None si no existe un registro."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(PrecioModel, libro_id)
+            return self._a_entidad(modelo) if modelo is not None else None
 
     def actualizar(self, precio: Precio) -> Precio:
-        """Actualiza moneda y precio base conservando la instancia almacenada.
-
-        Returns:
-            Precio actualizado, con la misma referencia que tenía el repositorio.
+        """Actualiza la moneda y el importe de un precio existente.
 
         Raises:
-            ValueError: Si no existe un precio para el libro indicado.
+            ValueError: Si no existe un registro para el libro indicado o
+                la moneda no tiene ID.
         """
-        if precio.libro_id not in self._datos:
-            raise ValueError(
-                f"No se encontró un registro de precio para el libro "
-                f"{precio.libro_id} para actualizar."
-            )
+        with self.contexto.transaction() as session:
+            modelo = session.get(PrecioModel, precio.libro_id)
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró un registro de precio para el libro "
+                    f"{precio.libro_id} para actualizar."
+                )
+            self._copiar_datos(modelo, precio)
 
-        # Mantener la instancia existente para conservar referencias
-        precio_actual = self._datos[precio.libro_id]
-
-        precio_actual.moneda = precio.moneda
-        precio_actual.precio_base = precio.precio_base
-
-        return precio_actual
+        return precio
 
     def eliminar(self, libro_id: int) -> bool:
-        """Elimina el precio del libro y devuelve True, o False si no existía."""
-        if libro_id not in self._datos:
-            return False
-
-        del self._datos[libro_id]
-        return True
-
+        """Elimina el precio del libro; devuelve False si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(PrecioModel, libro_id)
+            if modelo is None:
+                return False
+            session.delete(modelo)
+            return True
 
     def existe_por_moneda(self, moneda_id: int) -> bool:
-        """Comprueba si algún precio utiliza la moneda indicada.
-
-        Args:
-            moneda_id (int): ID de la moneda buscada.
-
-        Returns:
-            bool: True si la moneda está utilizada, o False si no lo está.
-        """
-        for precio in self._datos.values():
-            if precio.moneda.id == moneda_id:
-                return True
-
-        return False
+        """Comprueba si algún precio utiliza la moneda indicada."""
+        with self.contexto.transaction() as session:
+            consulta = (
+                select(PrecioModel.libro_id)
+                .where(PrecioModel.moneda_id == moneda_id)
+                .limit(1)
+            )
+            return session.scalar(consulta) is not None
 
 
-class MemoriaRepositorioStock(IRepositorioStock):
-    """Repositorio de stock en memoria identificado por libro_id."""
+class RepositorioStock:
+    """Persiste stock identificado por libro_id usando ContextManager."""
 
-    def __init__(self):
-        """Inicializa un repositorio vacío de stock, indexado por ID de libro."""
-        self._datos: dict[int, Stock] = {}
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: StockModel) -> Stock:
+        """Convierte un registro de stock con sus cantidades obligatorias."""
+        return Stock(
+            libro_id=modelo.libro_id,
+            cantidad_minima=modelo.cantidad_minima,
+            cantidad_total=modelo.cantidad_total,
+        )
 
     def crear(self, stock: Stock) -> Stock:
-        """Guarda y devuelve el stock recibido para su libro.
+        """Guarda el stock para un libro existente.
 
         Raises:
-            ValueError: Si ya existe stock registrado para el mismo libro.
+            ValueError: Si ya existe un registro de stock para el libro.
         """
-        if stock.libro_id in self._datos:
-            raise ValueError(
-                f"Ya existe un registro de stock para el libro {stock.libro_id}."
-            )
+        with self.contexto.transaction() as session:
+            if session.get(StockModel, stock.libro_id) is not None:
+                raise ValueError(
+                    f"Ya existe un registro de stock para el libro {stock.libro_id}."
+                )
 
-        self._datos[stock.libro_id] = stock
+            modelo = StockModel(
+                libro_id=stock.libro_id,
+                cantidad_minima=stock.cantidad_minima,
+                cantidad_total=stock.cantidad_total,
+            )
+            session.add(modelo)
+
         return stock
 
-    def leer_por_libro(self, libro_id: int) -> Optional[Stock]:
-        """Devuelve el stock del libro indicado, o None si no está registrado."""
-        return self._datos.get(libro_id)
+    def leer_por_libro(self, libro_id: int) -> Stock | None:
+        """Obtiene el stock del libro o None si no existe un registro."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(StockModel, libro_id)
+            return self._a_entidad(modelo) if modelo is not None else None
 
     def actualizar(self, stock: Stock) -> Stock:
-        """Actualiza las cantidades mínima y total conservando la instancia almacenada.
-
-        Returns:
-            Stock actualizado, con la misma referencia que tenía el repositorio.
+        """Actualiza las cantidades de un registro de stock existente.
 
         Raises:
-            ValueError: Si no existe stock registrado para el libro indicado.
+            ValueError: Si no existe un registro de stock para el libro.
         """
-        if stock.libro_id not in self._datos:
-            raise ValueError(
-                f"No se encontró un registro de stock para el libro "
-                f"{stock.libro_id} para actualizar."
-            )
+        with self.contexto.transaction() as session:
+            modelo = session.get(StockModel, stock.libro_id)
+            if modelo is None:
+                raise ValueError(
+                    f"No se encontró un registro de stock para el libro "
+                    f"{stock.libro_id} para actualizar."
+                )
 
-        # Mantener la instancia existente para conservar referencias
-        stock_actual = self._datos[stock.libro_id]
-        stock_actual.cantidad_minima = stock.cantidad_minima
-        stock_actual.cantidad_total = stock.cantidad_total
+            modelo.cantidad_minima = stock.cantidad_minima
+            modelo.cantidad_total = stock.cantidad_total
 
-        return stock_actual
+        return stock
 
     def eliminar(self, libro_id: int) -> bool:
-        """Elimina el stock del libro y devuelve True, o False si no existía."""
-        if libro_id not in self._datos:
-            return False
+        """Elimina el stock del libro; devuelve False si no existe."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(StockModel, libro_id)
+            if modelo is None:
+                return False
+            session.delete(modelo)
+            return True
 
-        del self._datos[libro_id]
-        return True
 
+class RepositorioCotizacion:
+    """Persiste cotizaciones con ID propio y combinación única de tipo, monedas y fecha."""
 
-class MemoriaRepositorioCotizacion(IRepositorioCotizacion):
-    """Repositorio de cotizaciones en memoria utilizando una clave compuesta."""
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones de la base de datos."""
+        self.contexto = contexto
 
-    def __init__(self):
-        """Inicializa las cotizaciones indexadas por tipo, monedas y fecha."""
-        self._datos: dict[tuple[int, int, int, date], Cotizacion] = {}
-
-    def _obtener_clave(self, cotizacion: Cotizacion) -> tuple[int, int, int, date]:
-        """Devuelve los IDs de tipo, moneda origen y destino, seguidos de la fecha."""
-        return (
+    @staticmethod
+    def _obtener_clave(cotizacion: Cotizacion) -> tuple[int, int, int, date]:
+        """Obtiene los IDs del tipo y las monedas, seguidos de la fecha."""
+        clave = (
             cotizacion.tipo_cotizacion.id,
             cotizacion.moneda_origen.id,
             cotizacion.moneda_destino.id,
-            cotizacion.fecha
+            cotizacion.fecha,
         )
+        if any(id_relacion is None for id_relacion in clave[:3]):
+            raise ValueError("El tipo de cotización y las monedas deben estar guardados previamente.")
+        return clave
+
+    @staticmethod
+    def _buscar_modelo(
+        session: Session, clave: tuple[int, int, int, date],
+    ) -> CotizacionModel | None:
+        """Busca por la combinación única de tipo, monedas y fecha."""
+        consulta = select(CotizacionModel).where(
+            CotizacionModel.tipo_cotizacion_id == clave[0],
+            CotizacionModel.moneda_origen_id == clave[1],
+            CotizacionModel.moneda_destino_id == clave[2],
+            CotizacionModel.fecha == clave[3],
+        )
+        return session.scalars(consulta).one_or_none()
+
+    @staticmethod
+    def _a_entidad(modelo: CotizacionModel) -> Cotizacion:
+        """Convierte la cotización y sus relaciones en entidades de dominio."""
+        cotizacion = Cotizacion(
+            moneda_origen=RepositorioMoneda._a_entidad(modelo.moneda_origen),
+            moneda_destino=RepositorioMoneda._a_entidad(modelo.moneda_destino),
+            tipo_cotizacion=RepositorioTipoCotizacion._a_entidad(modelo.tipo_cotizacion),
+            valor=Decimal(str(modelo.valor)),
+            fecha=modelo.fecha,
+        )
+        cotizacion.id = modelo.id
+        return cotizacion
 
     def crear(self, cotizacion: Cotizacion) -> Cotizacion:
-        """Guarda y devuelve la cotización recibida usando su clave compuesta.
-
-        Raises:
-            ValueError: Si ya existe una cotización del mismo tipo, monedas y fecha.
-        """
+        """Guarda una cotización y asigna su ID después de confirmar los cambios."""
         clave = self._obtener_clave(cotizacion)
-
-        if clave in self._datos:
-            raise ValueError(
-                f"Ya existe una cotización para el tipo {clave[0]}, "
-                f"las monedas {clave[1]} y {clave[2]} "
-                f"en la fecha {clave[3]}."
+        with self.contexto.transaction() as session:
+            if self._buscar_modelo(session, clave) is not None:
+                raise ValueError(
+                    f"Ya existe una cotización para el tipo {clave[0]}, "
+                    f"las monedas {clave[1]} y {clave[2]} "
+                    f"en la fecha {clave[3]}."
+                )
+            modelo = CotizacionModel(
+                tipo_cotizacion_id=clave[0],
+                moneda_origen_id=clave[1],
+                moneda_destino_id=clave[2],
+                fecha=clave[3],
+                valor=float(cotizacion.valor),
             )
-
-        self._datos[clave] = cotizacion
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
+        cotizacion.id = nuevo_id
         return cotizacion
 
     def leer_por_tipo_moneda_origen_destino_y_fecha(
@@ -738,111 +811,80 @@ class MemoriaRepositorioCotizacion(IRepositorioCotizacion):
         tipo_id: int,
         moneda_origen_id: int,
         moneda_destino_id: int,
-        fecha: date
-    ) -> Optional[Cotizacion]:
-        """Busca por IDs de tipo y monedas y por fecha; devuelve None si no existe."""
-
-        clave = (
-            tipo_id,
-            moneda_origen_id,
-            moneda_destino_id,
-            fecha
-        )
-
-        return self._datos.get(clave)
+        fecha: date,
+    ) -> Cotizacion | None:
+        """Obtiene una cotización por su clave o None si no existe."""
+        clave = (tipo_id, moneda_origen_id, moneda_destino_id, fecha)
+        with self.contexto.transaction() as session:
+            modelo = self._buscar_modelo(session, clave)
+            return self._a_entidad(modelo) if modelo is not None else None
 
     def leer_historico_por_tipo_moneda_origen_moneda_destino(
         self,
         tipo_id: int,
         moneda_origen_id: int,
-        moneda_destino_id: int
-    ) -> List[Cotizacion]:
-        """Devuelve el histórico del tipo y las monedas, ordenado por fecha ascendente.
-
-        Si no hay coincidencias, devuelve una lista vacía.
-        """
-
-        cotizaciones = [
-            cotizacion
-            for clave, cotizacion in self._datos.items()
-            if clave[:3] == (
-                tipo_id,
-                moneda_origen_id,
-                moneda_destino_id
+        moneda_destino_id: int,
+    ) -> list[Cotizacion]:
+        """Obtiene el histórico por tipo y monedas, ordenado por fecha ascendente."""
+        with self.contexto.transaction() as session:
+            consulta = (
+                select(CotizacionModel)
+                .where(
+                    CotizacionModel.tipo_cotizacion_id == tipo_id,
+                    CotizacionModel.moneda_origen_id == moneda_origen_id,
+                    CotizacionModel.moneda_destino_id == moneda_destino_id,
+                )
+                .order_by(CotizacionModel.fecha)
             )
-        ]
-
-        return sorted(
-            cotizaciones,
-            key=lambda cotizacion: cotizacion.fecha
-        )
+            return [self._a_entidad(modelo) for modelo in session.scalars(consulta)]
 
     def actualizar(self, cotizacion: Cotizacion) -> Cotizacion:
-        """Actualiza el valor de una cotización conservando la instancia almacenada.
-
-        Returns:
-            Cotización actualizada, con la misma referencia que tenía el repositorio.
-
-        Raises:
-            ValueError: Si no existe la clave compuesta de la cotización recibida.
-        """
+        """Actualiza el valor; falla si no existe la clave compuesta recibida."""
         clave = self._obtener_clave(cotizacion)
-
-        if clave not in self._datos:
-            raise ValueError(
-                "No se encontró la cotización para actualizar."
-            )
-
-        # Mantener la instancia existente
-        cotizacion_actual = self._datos[clave]
-        cotizacion_actual.valor = cotizacion.valor
-
-        return cotizacion_actual
+        with self.contexto.transaction() as session:
+            modelo = self._buscar_modelo(session, clave)
+            if modelo is None:
+                raise ValueError("No se encontró la cotización para actualizar.")
+            modelo.valor = float(cotizacion.valor)
+            cotizacion_id = modelo.id
+        cotizacion.id = cotizacion_id
+        return cotizacion
 
     def eliminar(
         self,
         tipo_id: int,
         moneda_origen_id: int,
         moneda_destino_id: int,
-        fecha: date
+        fecha: date,
     ) -> bool:
-        """Elimina por tipo, monedas y fecha; devuelve True, o False si no existía."""
-
-        clave = (
-            tipo_id,
-            moneda_origen_id,
-            moneda_destino_id,
-            fecha
-        )
-
-        if clave not in self._datos:
-            return False
-
-        del self._datos[clave]
-        return True
+        """Elimina por clave compuesta; devuelve False si no existe."""
+        clave = (tipo_id, moneda_origen_id, moneda_destino_id, fecha)
+        with self.contexto.transaction() as session:
+            modelo = self._buscar_modelo(session, clave)
+            if modelo is None:
+                return False
+            session.delete(modelo)
+            return True
 
     def existe_por_tipo_cotizacion(self, tipo_id: int) -> bool:
-        """Devuelve True si alguna cotización utiliza el tipo indicado, o False si no."""
-
-        for cotizacion in self._datos.values():
-            if cotizacion.tipo_cotizacion.id == tipo_id:
-                return True
-        return False
+        """Comprueba si alguna cotización utiliza el tipo indicado."""
+        with self.contexto.transaction() as session:
+            consulta = (
+                select(CotizacionModel.tipo_cotizacion_id)
+                .where(CotizacionModel.tipo_cotizacion_id == tipo_id)
+                .limit(1)
+            )
+            return session.scalar(consulta) is not None
 
     def existe_por_moneda(self, moneda_id: int) -> bool:
-        """Comprueba si alguna cotización utiliza la moneda indicada.
-
-        Args:
-            moneda_id (int): ID de la moneda de origen o destino.
-
-        Returns:
-            bool: True si la moneda está utilizada, o False si no lo está.
-        """
-        for cotizacion in self._datos.values():
-            if (
-                cotizacion.moneda_origen.id == moneda_id
-                or cotizacion.moneda_destino.id == moneda_id
-            ):
-                return True
-
-        return False
+        """Comprueba si la moneda se utiliza como origen o destino."""
+        with self.contexto.transaction() as session:
+            consulta = (
+                select(CotizacionModel.tipo_cotizacion_id)
+                .where(
+                    (CotizacionModel.moneda_origen_id == moneda_id)
+                    | (CotizacionModel.moneda_destino_id == moneda_id)
+                )
+                .limit(1)
+            )
+            return session.scalar(consulta) is not None

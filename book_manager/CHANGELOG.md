@@ -1,5 +1,17 @@
   # CHANGELOG
 
+  ## [Ejercicio 6]
+  ### Modificación
+
+  - Se modificó `entities.py` para permitir nombres de editorial de hasta 50 caracteres.
+  - Se modificó `models.py` para ampliar a 50 caracteres el campo nombre de `EditorialModel`.
+  - Se modificó `preload_data.py` para verificar los SQL, recrear las tablas, ejecutar los inserts en orden y sincronizar los IDs.
+  - Se adaaptó `repositories.py` a los modelos actuales y a los campos obligatorios de precio y stock.
+  - Se modificó `services.py` para utilizar los repositorios de base de datos.
+  - Se modificó `main.py` para cargar la conexión desde `.env` y ejecutar la migración y precarga cuando `import_default_data=True`.
+
+  ---
+
    ## [Ejercicio 5]
    ### Nuevo
 

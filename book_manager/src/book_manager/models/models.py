@@ -39,7 +39,7 @@ class EditorialModel(Base):
     __tablename__ = "editoriales"
 
     id = Column(Integer, primary_key=True)
-    nombre = Column(String(20), nullable=False,unique=True)
+    nombre = Column(String(50), nullable=False,unique=True)
     grupo = Column(String(50), nullable=False)
     pais_origen = Column(String(20), nullable=False)
     telefono = Column(String(20), nullable=False)
