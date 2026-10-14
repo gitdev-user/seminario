@@ -1,11 +1,11 @@
 id,nombre,descripcion
-1,Oficial,Tipo Oficial
-2,Blue,Tipo Blue
-3,MEP,Tipo MEP
-4,CCL,Tipo CCL
-5,Mayorista,Tipo Mayorista
-6,Minorista,Tipo Minorista
-7,Tarjeta,Tipo Tarjeta
-8,Turista,Tipo Turista
-9,Compra,Tipo Compra
-10,Venta,Tipo Venta
+1,"Oficial","Cotización minorista del Banco Nación."
+2,"Mayorista","Cotización entre bancos fijado por el BCRA."
+3,"Blue","Cotización en el mercado informal."
+4,"MEP","Cotización en compraventa de bonos."
+5,"CCL","Cotización contado con liquidación."
+6,"Tarjeta","Cotización con impuestos para tarjeta."
+7,"Cripto","Cotización implícita mediante criptoactivos."
+8,"Exportación","Cotización aplicado a exportaciones."
+9,"Bolsa","Cotización en el mercado bursátil."
+10,"Banco","Cotización minorista ofrecida por cada Banco."

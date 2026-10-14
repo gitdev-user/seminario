@@ -1,11 +1,11 @@
 id,nombre,descripcion
-1,Novela,Libros de novela
-2,Ensayo,Libros de ensayo
-3,Infantil,Libros de infantil
-4,Tecnico,Libros de tecnico
-5,Poesia,Libros de poesia
-6,Historia,Libros de historia
-7,Ciencia,Libros de ciencia
-8,Fantasia,Libros de fantasia
-9,Biografia,Libros de biografia
-10,Teatro,Libros de teatro
+1,"Arte","Libros de fotografía por tema."
+2,"Terror","Relatos que buscan provocar miedo."
+3,"Ciencias","Ciencia explicada para todo público."
+4,"Infantil","Libros para niños y adolescentes."
+5,"Policiales","Historias de crímenes e investigación."
+6,"Ficción","Novelas y relatos de autores actuales."
+7,"Autoayuda","Libros de desarrollo personal."
+8,"Ecología","Medioambiente y su cuidado."
+9,"Matemáticas","Números, cálculo y razonamiento lógico."
+10,"Filosofía","Reflexión sobre la existencia y el pensamiento."

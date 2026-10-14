@@ -1,11 +1,11 @@
 id,isbn,titulo,autor,peso,dimensiones,numero_paginas,fecha_publicacion,idioma,editorial_id,genero_id
-1,9780000000001,El horizonte,Autor Horizonte,250.0,20 x 14 x 2,120,2024-01-15,Espanol,1,1
-2,9780000000002,Senderos de papel,Autor Sendero,270.0,20 x 14 x 2,140,2024-02-15,Espanol,2,2
-3,9780000000003,La luna azul,Autor Aurora,290.0,20 x 14 x 2,160,2024-03-15,Espanol,3,3
-4,9780000000004,Python inicial,Autor Faro,310.0,20 x 14 x 2,180,2024-04-15,Espanol,4,4
-5,9780000000005,Versos del mar,Autor Raices,330.0,20 x 14 x 2,200,2024-05-15,Espanol,5,5
-6,9780000000006,Memorias del sur,Autor Brisa,350.0,20 x 14 x 2,220,2024-06-15,Espanol,6,6
-7,9780000000007,Ciencia cotidiana,Autor Puente,370.0,20 x 14 x 2,240,2024-07-15,Espanol,7,7
-8,9780000000008,El bosque magico,Autor Estrella,390.0,20 x 14 x 2,260,2024-08-15,Espanol,8,8
-9,9780000000009,Una vida de viajes,Autor Norte,410.0,20 x 14 x 2,280,2024-09-15,Espanol,9,9
-10,9780000000010,El ultimo acto,Autor Sur,430.0,20 x 14 x 2,300,2024-10-15,Espanol,10,10
+1,"9780241773710","EL LIBRO DEL AUTOMOVIL","VARIOS AUTORES",1890,"28.00cm X 24.00cm X 3.00cm",368,2026-09-15,"Español/Castellano",1,1
+2,"9789878453521","BLACKWATER (PARTE II):EL DIQUE","MCDOWELL, MICHAEL",400,"11.00cm X 16.00cm X 2.70cm",272,2024-09-30,"Español/Castellano",2,2
+3,"9789877950663","ARTIFICIAL","SIGMAN, MARIANO",400,"15.00cm X 23.00cm X 2.30cm",232,2023-09-28,"Español/Castellano",3,3
+4,"9789504983583","NO TE OLVIDARE","HOOVER, COLLEEN",400,"15.00cm X 23.00cm X 1.00cm",10,2023-08-31,"Español/Castellano",4,4
+5,"9789877392227","LA ASISTENTA","MCFADDEN, FREIDA",406,"15.00cm X 23.00cm X 1.00cm",344,2024-01-30,"Español/Castellano",5,5
+6,"9789877694383","UNA CASA SOLA","ALMADA, SELVA", 232,"13.00cm X 23.00cm X 1.60cm",160,2026-02-27,"Español/Castellano",6,6
+7,"9789878223988","LA FELICIDAD","ROLON, GABRIEL",400,"13.00cm X 20.00cm X 1.30cm",10,2026-05-29,"Español/Castellano",7,7
+8,"9788446047674","EL LIBRO DE LA ECOLOGIA","VARIOS AUTORES",1133,"195mm X 230mm",352,2019-01-01,"Español/Castellano",8,8
+9,"9788419414519","LA SIMPLICIDAD DEL UNIVERSO","CUMRUN VAFA",420,"5242mm X 15mm",304,2025-01-01,"Español/Castellano",9,9
+10,"9789501211023","SOBRE DIOS","HAN, BYUNG-CHUL",400,"13.00cm X 21.00cm X 1.00cm",136,2026-09-30,"Español/Castellano",10,10

@@ -1,11 +1,11 @@
 id,nombre,grupo,pais_origen,telefono,email
-1,Editorial Horizonte,Grupo Horizonte,Argentina,+541140001000,contacto1@example.com
-2,Editorial Sendero,Grupo Sendero,Argentina,+541140001001,contacto2@example.com
-3,Editorial Aurora,Grupo Aurora,Argentina,+541140001002,contacto3@example.com
-4,Editorial Faro,Grupo Faro,Argentina,+541140001003,contacto4@example.com
-5,Editorial Raices,Grupo Raices,Argentina,+541140001004,contacto5@example.com
-6,Editorial Brisa,Grupo Brisa,Argentina,+541140001005,contacto6@example.com
-7,Editorial Puente,Grupo Puente,Argentina,+541140001006,contacto7@example.com
-8,Editorial Estrella,Grupo Estrella,Argentina,+541140001007,contacto8@example.com
-9,Editorial Norte,Grupo Norte,Argentina,+541140001008,contacto9@example.com
-10,Editorial Sur,Grupo Sur,Argentina,+541140001009,contacto10@example.com
+1,"DORLING KINDERSLEY","Penguin Random House","Reino Unido","+44-1206-255678","contacto@penguinrandomhouse.co.uk"
+2,"BLACKIE BOOKS","Independiente","España","+34-934-160-959","contacto@independiente.org"
+3,"DEBATE","Penguin Random House","España","+34-934-160-958","contacto@penguinrandomhouse.co.es"
+4,"PLANETA","Grupo Planeta","España","+34-934-160-957","contacto@planeta.org"
+5,"SUMA DE LETRAS","Penguin Random House","España","+34-934-160-956","contacto@penguinrandomhouse.co.es"
+6,"LITERATURA RANDOM HOUSE","Penguin Random House","España","+34-934-160-955","contacto@penguinrandomhouse.co.es"
+7,"BOOKET","Grupo Planeta","España","+34-934-160-957","contacto@planeta.org"
+8,"EDICIONES AKAL","Grupo Editorial Akal","España","+34-918-061-996","contacto@akal.com"
+9,"GUADALMAZAN","Grupo Almuzara","España","+34-957-467-081","contacto@almuzaralibros.com"
+10,"PAIDOS","Grupo Planeta","Argentina","+54-911-1111-1111","contacto@planeta.org"

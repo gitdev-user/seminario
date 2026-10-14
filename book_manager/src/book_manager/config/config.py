@@ -1,3 +1,5 @@
+"""Define la configuración de la aplicación y las rutas de sus repositorios CSV."""
+
 from pathlib import Path
 
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -7,7 +9,12 @@ RAIZ_PROYECTO = Path(__file__).resolve().parents[3]
 
 
 class Configuracion(BaseSettings):
-    """Carga la configuración compartida desde book_manager/.env."""
+    """Centraliza las opciones de la aplicación y de los repositorios CSV.
+
+    Utiliza valores predeterminados que pueden sobrescribirse mediante el
+    archivo ``book_manager/.env`` o variables de entorno. Las variables de
+    entorno tienen prioridad sobre los valores del archivo.
+    """
 
     model_config = SettingsConfigDict(
         env_file=RAIZ_PROYECTO / ".env",
@@ -30,10 +37,22 @@ class Configuracion(BaseSettings):
 
     @property
     def directorio_repositorio(self) -> Path:
-        """Resuelve la carpeta respecto del proyecto, también en Colab."""
+        """Devuelve la ruta absoluta de la carpeta de repositorios CSV.
+
+        Si ``repositorio_carpeta`` es relativa, se resuelve respecto de la raíz
+        de ``book_manager``; si es absoluta, se utiliza esa ubicación.
+        """
         return (RAIZ_PROYECTO / self.repositorio_carpeta).resolve()
 
     def ruta_repositorio(self, nombre: str) -> Path:
+        """Construye la ruta de un archivo dentro de la carpeta de repositorios.
+
+        Args:
+            nombre: Nombre del archivo CSV, por ejemplo ``editoriales.csv``.
+
+        Returns:
+            Ruta del archivo, sin comprobar su existencia ni crearlo.
+        """
         return self.directorio_repositorio / nombre
 
 
