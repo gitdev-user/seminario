@@ -1,0 +1,10 @@
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (1, 'Oficial', 'Cotización minorista del Banco Nación.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (2, 'Mayorista', 'Cotización entre bancos fijado por el BCRA.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (3, 'Blue', 'Cotización en el mercado informal.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (4, 'MEP', 'Cotización en compraventa de bonos.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (5, 'CCL', 'Cotización contado con liquidación.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (6, 'Tarjeta', 'Cotización con impuestos para tarjeta.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (7, 'Cripto', 'Cotización implícita mediante criptoactivos.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (8, 'Exportación', 'Cotización aplicado a exportaciones.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (9, 'Bolsa', 'Cotización en el mercado bursátil.');
+INSERT INTO "tipos_cotizacion" ("id", "nombre", "descripcion") VALUES (10, 'Banco', 'Cotización minorista ofrecida por cada Banco.');

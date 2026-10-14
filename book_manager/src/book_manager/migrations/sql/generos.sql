@@ -1,0 +1,10 @@
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (1, 'Arte', 'Libros de fotografía por tema.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (2, 'Terror', 'Relatos que buscan provocar miedo.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (3, 'Ciencias', 'Ciencia explicada para todo público.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (4, 'Infantil', 'Libros para niños y adolescentes.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (5, 'Policiales', 'Historias de crímenes e investigación.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (6, 'Ficción', 'Novelas y relatos de autores actuales.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (7, 'Autoayuda', 'Libros de desarrollo personal.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (8, 'Ecología', 'Medioambiente y su cuidado.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (9, 'Matemáticas', 'Números, cálculo y razonamiento lógico.');
+INSERT INTO "generos" ("id", "nombre", "descripcion") VALUES (10, 'Filosofía', 'Reflexión sobre la existencia y el pensamiento.');

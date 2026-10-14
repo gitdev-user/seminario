@@ -1,0 +1,10 @@
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (1, 2, 1, 1, 1470.0, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (2, 2, 1, 2, 1441.5, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (3, 2, 1, 3, 1475.0, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (4, 2, 1, 4, 1468.9, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (5, 2, 1, 5, 1485.6, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (6, 2, 1, 6, 1911.0, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (7, 2, 1, 7, 1492.0, '2026-10-03');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (8, 2, 1, 8, 1437.0, '2026-10-13');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (9, 2, 1, 9, 1468.9, '2026-10-13');
+INSERT INTO "cotizaciones" ("id", "moneda_origen_id", "moneda_destino_id", "tipo_cotizacion_id", "valor", "fecha") VALUES (10, 2, 1, 10, 1475.0, '2026-10-03');

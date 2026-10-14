@@ -1,6 +1,16 @@
   # CHANGELOG
 
-   ## [Ejercicio 3]
+   ## [Ejercicio 5]
+   ### Nuevo
+
+  - Se agregó un proceso de migración de archivos CSV a sentencias con inserts de sql.
+  - Se agregaron los archivos SQL con los inserts generados en migrations/sql
+   ### Modificacion
+   - Se corrigió el separador decimal de un precio en precios.csv.
+
+  ---
+
+   ## [Ejercicio 4]
    ### Nuevo
  - Se agregaron en `models.py` los modelos SQLAlchemy de todas las entidades, con sus columnas, claves primarias, claves foráneas, relaciones y restricciones de unicidad.
 

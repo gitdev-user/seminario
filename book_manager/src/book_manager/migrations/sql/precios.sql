@@ -1,0 +1,10 @@
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (1, 2, 63.52);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (2, 2, 23.45);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (3, 2, 30.29);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (4, 2, 30.55);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (5, 2, 31.92);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (6, 2, 25.41);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (7, 2, 23.39);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (8, 2, 77.14);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (9, 2, 54.25);
+INSERT INTO "precios" ("libro_id", "moneda_id", "precio_base") VALUES (10, 2, 22.08);

@@ -1,0 +1,10 @@
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (1, 'DORLING KINDERSLEY', 'Penguin Random House', 'Reino Unido', '+44-1206-255678', 'contacto@penguinrandomhouse.co.uk');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (2, 'BLACKIE BOOKS', 'Independiente', 'España', '+34-934-160-959', 'contacto@independiente.org');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (3, 'DEBATE', 'Penguin Random House', 'España', '+34-934-160-958', 'contacto@penguinrandomhouse.co.es');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (4, 'PLANETA', 'Grupo Planeta', 'España', '+34-934-160-957', 'contacto@planeta.org');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (5, 'SUMA DE LETRAS', 'Penguin Random House', 'España', '+34-934-160-956', 'contacto@penguinrandomhouse.co.es');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (6, 'LITERATURA RANDOM HOUSE', 'Penguin Random House', 'España', '+34-934-160-955', 'contacto@penguinrandomhouse.co.es');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (7, 'BOOKET', 'Grupo Planeta', 'España', '+34-934-160-957', 'contacto@planeta.org');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (8, 'EDICIONES AKAL', 'Grupo Editorial Akal', 'España', '+34-918-061-996', 'contacto@akal.com');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (9, 'GUADALMAZAN', 'Grupo Almuzara', 'España', '+34-957-467-081', 'contacto@almuzaralibros.com');
+INSERT INTO "editoriales" ("id", "nombre", "grupo", "pais_origen", "telefono", "email") VALUES (10, 'PAIDOS', 'Grupo Planeta', 'Argentina', '+54-911-1111-1111', 'contacto@planeta.org');

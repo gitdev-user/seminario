@@ -1,0 +1,10 @@
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (1, 20, 100);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (2, 20, 200);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (3, 20, 300);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (4, 20, 100);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (5, 20, 50);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (6, 20, 30);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (7, 20, 50);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (8, 20, 70);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (9, 20, 50);
+INSERT INTO "stock" ("libro_id", "cantidad_minima", "cantidad_total") VALUES (10, 20, 25);
