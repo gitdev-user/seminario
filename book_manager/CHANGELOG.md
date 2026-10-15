@@ -1,5 +1,12 @@
   # CHANGELOG
 
+  ## [Ejercicio 7]
+  ### Nuevo
+  - Se agregó  el método `obtener_cotizaciones()` en `ServicioCotizacion` para descargar y registrar las cotizaciones de venta desde la API.
+  - En `.env` se agregó la url de la API e las cotizaciones del dólar.
+  
+  ---
+
   ## [Ejercicio 6]
   ### Modificación
 
