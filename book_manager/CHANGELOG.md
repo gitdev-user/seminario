@@ -1,8 +1,10 @@
   # CHANGELOG
 
-  ## [Ejericio 8]
+  ## [Ejercicio 8]
   ### Nuevo
   -Se agregó en el menu de Gestión de Cotizaciones la opción "Obtener las cotizaciones por Api" 
+  ### Modificación
+  -Se ajustaron algunos cambios en requirements.txt
 
   ---
   
