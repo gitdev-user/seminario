@@ -90,6 +90,8 @@ def main(import_default_data: bool = False) -> None:
         )
         servicio_cotizacion = ServicioCotizacion(
             repositorio=repositorio_cotizaciones,
+            repositorio_moneda=repositorio_monedas,
+            repositorio_tipo_cotizacion=repositorio_tipos,
         )
         servicio_catalogo = ServicioCatalogo(
             repositorio=repositorio_libros,

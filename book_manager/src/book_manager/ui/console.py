@@ -1,5 +1,7 @@
 from datetime import date
 
+from sqlalchemy.exc import SQLAlchemyError
+
 from ui.console_helper import (
     limpiar_pantalla, 
     mostrar_menu,
@@ -125,7 +127,9 @@ class ControladorInventario:
             "6": ("Modificación de precio", self.modificacion_precio),
             "7": ("Baja de precio", self.baja_precio),
             "8": ("Buscar precio por libro", self.buscar_precio_por_libro),
-            "9": ("Volver atrás", None),
+            "9": ("Listar precios bimonetarios", self.listar_precios_bimonetarios),
+            "10": ("Exportar precios a archivo CSV", self.exportar_precios_csv),
+            "11": ("Volver atrás", None),
         }
         while True:
             limpiar_pantalla()
@@ -140,6 +144,14 @@ class ControladorInventario:
                     return
                 accion()
             input("\nPresione Enter para continuar...")
+
+    def listar_precios_bimonetarios(self):
+        """Informa que el listado de precios bimonetarios está pendiente."""
+        print("Sección en construcción")
+
+    def exportar_precios_csv(self):
+        """Informa que la exportación de precios está pendiente."""
+        print("Sección en construcción")
 
     def _pedir_libro(self):
         """Solicita el ID de un libro, valida su existencia y devuelve el objeto."""
@@ -575,7 +587,8 @@ class ControladorCotizacion:
             "3": ("Baja", self.baja),
             "4": ("Búsqueda de cotización", self.buscar),
             "5": ("Ver Listado Histórico", self.listar_historico),
-            "6": ("Volver atrás", None),
+            "6": ("Obtener Cotizaciones por API", self.obtener_cotizaciones),
+            "7": ("Volver atrás", None),
         }
 
         while True:
@@ -596,15 +609,15 @@ class ControladorCotizacion:
     @staticmethod
     def _mostrar(cotizaciones):
         mostrar_separador()
-        print( "Tipo", "Moneda origen", "Moneda destino","Fecha", "Valor", sep=" | ")
+        print("Moneda origen", "Moneda destino", "Tipo de cotización", "Fecha", "Valor", sep=" | ")
         mostrar_separador()
         for cotizacion in cotizaciones:
             print(
-                cotizacion.tipo_cotizacion.nombre,
                 cotizacion.moneda_origen.codigo_iso,
                 cotizacion.moneda_destino.codigo_iso,
+                cotizacion.tipo_cotizacion.nombre,
                 cotizacion.fecha,
-                cotizacion.valor,
+                f"{cotizacion.valor:.2f}",
                 sep=" | ",
             )
 
@@ -708,6 +721,20 @@ class ControladorCotizacion:
             self._mostrar([cotizacion])
         except (ValueError, TypeError) as error:
             print(f"No se pudo buscar la cotización: {error}")
+
+    def obtener_cotizaciones(self):
+        """Descarga y registra las cotizaciones de la API y muestra su listado."""
+        print("\n--- OBTENER COTIZACIONES POR API ---")
+        try:
+            cotizaciones = self.servicio.obtener_cotizaciones()
+            if not cotizaciones:
+                print("No se obtuvieron cotizaciones.")
+                return
+
+            self._mostrar(cotizaciones)
+            print(f"Cotizaciones registradas: {len(cotizaciones)}")
+        except (ValueError, TypeError, RuntimeError, SQLAlchemyError) as error:
+            print(f"No se pudieron obtener las cotizaciones: {error}")
 
     def listar_historico(self):
         print("\n--- LISTADO HISTÓRICO DE COTIZACIONES ---")
