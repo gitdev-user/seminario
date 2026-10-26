@@ -65,8 +65,8 @@ class LibroModel(Base):
 
     editorial = relationship("EditorialModel", back_populates="libros")
     genero = relationship("GeneroModel", back_populates="libros")
-    precio = relationship(
-        "PrecioModel", back_populates="libro", uselist=False,
+    precios = relationship(
+        "PrecioModel", back_populates="libro", order_by="PrecioModel.moneda_id",
         cascade="all, delete-orphan", single_parent=True,
     )
     stock = relationship(
@@ -78,12 +78,12 @@ class LibroModel(Base):
 class PrecioModel(Base):
     __tablename__ = "precios"
 
-    # La entidad admite un solo precio por libro.
+    # Cada libro admite un precio por moneda.
     libro_id = Column(Integer, ForeignKey("libros.id"), primary_key=True)
-    moneda_id = Column(Integer, ForeignKey("monedas.id"), nullable=False)
+    moneda_id = Column(Integer, ForeignKey("monedas.id"), primary_key=True)
     precio_base = Column(Float, nullable=False)
 
-    libro = relationship("LibroModel", back_populates="precio")
+    libro = relationship("LibroModel", back_populates="precios")
     moneda = relationship("MonedaModel")
 
 

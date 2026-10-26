@@ -39,8 +39,8 @@ class ServicioInventario:
         self.repositorio_stock = repositorio_stock
         self.repositorio_moneda = repositorio_moneda
 
-    def guardar_precio(self, precio: Precio) -> Precio:
-        """Valida libro y moneda y guarda el precio identificado por libro_id."""
+    def _validar_precio(self, precio: Precio) -> None:
+        """Comprueba las referencias del precio antes de persistirlo."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {precio.libro_id}.")
@@ -50,12 +50,16 @@ class ServicioInventario:
             raise ValueError(f"No existe una moneda con ID {precio.moneda.id}.")
 
         precio.moneda = moneda
-        if self.repositorio_precio.leer_por_libro(precio.libro_id) is None:
-            guardado = self.repositorio_precio.crear(precio)
-        else:
-            guardado = self.repositorio_precio.actualizar(precio)
 
-        return guardado
+    def crear_precio(self, precio: Precio) -> Precio:
+        """Crea un precio; rechaza parejas libro–moneda duplicadas."""
+        self._validar_precio(precio)
+        return self.repositorio_precio.crear(precio)
+
+    def actualizar_precio(self, precio: Precio) -> Precio:
+        """Modifica el importe de una pareja libro–moneda existente."""
+        self._validar_precio(precio)
+        return self.repositorio_precio.actualizar(precio)
 
     def guardar_stock(self, stock: Stock) -> Stock:
         """Valida el libro y guarda el stock identificado por libro_id."""
@@ -70,17 +74,21 @@ class ServicioInventario:
 
         return guardado
 
-    def leer_precio_por_libro(self, libro_id: int) -> Optional[Precio]:
-        """Devuelve el precio registrado para el libro, o None si no existe."""
+    def leer_precios_por_libro(self, libro_id: int) -> List[Precio]:
+        """Devuelve los precios del libro, o una lista vacía."""
         return self.repositorio_precio.leer_por_libro(libro_id)
+
+    def leer_precio_por_libro_y_moneda(self, libro_id: int, moneda_id: int) -> Optional[Precio]:
+        """Devuelve el precio en la moneda solicitada, o None."""
+        return self.repositorio_precio.leer_por_libro_y_moneda(libro_id, moneda_id)
 
     def leer_stock_por_libro(self, libro_id: int) -> Optional[Stock]:
         """Devuelve el stock registrado para el libro, o None si no existe."""
         return self.repositorio_stock.leer_por_libro(libro_id)
 
-    def eliminar_precio_por_libro(self, libro_id: int) -> bool:
-        """Elimina el registro de precio; el libro permanece guardado."""
-        return self.repositorio_precio.eliminar(libro_id)
+    def eliminar_precio_por_libro_y_moneda(self, libro_id: int, moneda_id: int) -> bool:
+        """Elimina ese precio; el libro puede quedar sin precios."""
+        return self.repositorio_precio.eliminar(libro_id, moneda_id)
 
     def eliminar_stock_por_libro(self, libro_id: int) -> bool:
         """Elimina el registro de stock; el libro permanece guardado."""

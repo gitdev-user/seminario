@@ -560,7 +560,7 @@ class Cotizacion:
 
 
 class Libro:
-    """Representa un libro con sus datos bibliográficos, físicos, precio y stock."""
+    """Representa un libro con sus datos bibliográficos, precios y stock."""
 
     def __init__(
         self,
@@ -574,7 +574,7 @@ class Libro:
         idioma: str,
         editorial: Editorial,
         genero: Genero,
-        precio: Precio = None,
+        precios: list[Precio] | None = None,
         stock: Stock = None
     ):
         self.isbn = isbn
@@ -587,7 +587,7 @@ class Libro:
         self.idioma = idioma
         self.editorial = editorial
         self.genero = genero
-        self.precio = precio
+        self.precios = precios if precios is not None else []
         self.stock = stock
 
     # Propiedad isbn
@@ -765,19 +765,24 @@ class Libro:
 
         self._genero = valor
 
-    # Propiedad precio
+    # Propiedad precios
     @property
-    def precio(self) -> Precio | None:
-        return self._precio
+    def precios(self) -> list[Precio]:
+        # Una copia evita agregar duplicados sin pasar por la validación.
+        return list(self._precios)
 
-    @precio.setter
-    def precio(self, valor: Precio | None):
-        if valor is not None and not isinstance(valor, Precio):
-            raise TypeError(
-                "El precio debe ser una instancia de Precio."
-            )
-
-        self._precio = valor
+    @precios.setter
+    def precios(self, valor: list[Precio]):
+        if not isinstance(valor, list) or any(not isinstance(p, Precio) for p in valor):
+            raise TypeError("Los precios deben ser una lista de instancias de Precio.")
+        monedas = [p.moneda.codigo_iso for p in valor]
+        ids = [p.moneda.id for p in valor if p.moneda.id is not None]
+        if len(monedas) != len(set(monedas)) or len(ids) != len(set(ids)):
+            raise ValueError("El libro no puede tener dos precios en la misma moneda.")
+        libro_id = getattr(self, "id", None)
+        if libro_id is not None and any(p.libro_id != libro_id for p in valor):
+            raise ValueError("Todos los precios deben pertenecer al libro.")
+        self._precios = list(valor)
 
     # Propiedad stock
     @property

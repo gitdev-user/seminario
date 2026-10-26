@@ -426,10 +426,7 @@ class RepositorioLibro:
     @staticmethod
     def _a_entidad(modelo: LibroModel) -> Libro:
         """Convierte el libro y sus relaciones mientras la sesión está abierta."""
-        precio = (
-            RepositorioPrecio._a_entidad(modelo.precio)
-            if modelo.precio is not None else None
-        )
+        precios = [RepositorioPrecio._a_entidad(precio) for precio in modelo.precios]
         stock = (
             RepositorioStock._a_entidad(modelo.stock)
             if modelo.stock is not None else None
@@ -446,7 +443,7 @@ class RepositorioLibro:
             idioma=modelo.idioma,
             editorial=RepositorioEditorial._a_entidad(modelo.editorial),
             genero=RepositorioGenero._a_entidad(modelo.genero),
-            precio=precio,
+            precios=precios,
             stock=stock,
         )
         libro.id = modelo.id
@@ -454,15 +451,12 @@ class RepositorioLibro:
 
     @staticmethod
     def _copiar_datos(modelo: LibroModel, entidad: Libro) -> None:
-        """Copia los campos y persiste solo precios y stock completos.
+        """Copia los datos bibliográficos y stock sin modificar los precios.
 
-        Si la entidad no incluye precio o stock, elimina esa relación
-        mediante la cascada delete-orphan definida en LibroModel.
+        Los precios existentes se gestionan mediante RepositorioPrecio.
         """
         if entidad.editorial.id is None or entidad.genero.id is None:
             raise ValueError("La editorial y el género deben estar guardados previamente.")
-        if entidad.precio is not None and entidad.precio.moneda.id is None:
-            raise ValueError("La moneda del precio debe estar guardada previamente.")
 
         modelo.isbn = entidad.isbn
         modelo.titulo = entidad.titulo
@@ -475,13 +469,6 @@ class RepositorioLibro:
         modelo.editorial_id = entidad.editorial.id
         modelo.genero_id = entidad.genero.id
 
-        if entidad.precio is None:
-            modelo.precio = None
-        else:
-            if modelo.precio is None:
-                modelo.precio = PrecioModel()
-            RepositorioPrecio._copiar_datos(modelo.precio, entidad.precio)
-
         if entidad.stock is None:
             modelo.stock = None
         else:
@@ -491,7 +478,7 @@ class RepositorioLibro:
             modelo.stock.cantidad_total = entidad.stock.cantidad_total
 
     def crear(self, entidad: Libro) -> Libro:
-        """Guarda el libro y, si se proporcionan, su precio y stock completos.
+        """Guarda el libro y, si se proporcionan, sus precios y stock completos.
 
         Raises:
             TypeError: Si la entidad no es un Libro.
@@ -509,13 +496,19 @@ class RepositorioLibro:
             if entidad_id is not None:
                 modelo.id = entidad_id
             self._copiar_datos(modelo, entidad)
+            # Revalida la colección: los objetos Precio son mutables.
+            entidad.precios = entidad.precios
+            for precio in entidad.precios:
+                registro = PrecioModel()
+                RepositorioPrecio._copiar_datos(registro, precio)
+                modelo.precios.append(registro)
             session.add(modelo)
             session.flush()
             nuevo_id = modelo.id
 
         entidad.id = nuevo_id
-        if entidad.precio is not None:
-            entidad.precio.libro_id = nuevo_id
+        for precio in entidad.precios:
+            precio.libro_id = nuevo_id
         if entidad.stock is not None:
             entidad.stock.libro_id = nuevo_id
         return entidad
@@ -552,7 +545,7 @@ class RepositorioLibro:
             return session.scalar(consulta) is not None
 
     def actualizar(self, entidad: Libro) -> Libro:
-        """Actualiza el libro, precio y stock; falla si el ID no existe."""
+        """Actualiza datos bibliográficos y stock, conservando todos los precios."""
         with self.contexto.transaction() as session:
             entidad_id = getattr(entidad, "id", None)
             modelo = session.get(LibroModel, entidad_id) if entidad_id is not None else None
@@ -561,15 +554,15 @@ class RepositorioLibro:
                     f"No se encontró el registro con ID {entidad_id} para actualizar."
                 )
             self._copiar_datos(modelo, entidad)
+            precios = [RepositorioPrecio._a_entidad(p) for p in modelo.precios]
 
-        if entidad.precio is not None:
-            entidad.precio.libro_id = entidad_id
+        entidad.precios = precios
         if entidad.stock is not None:
             entidad.stock.libro_id = entidad_id
         return entidad
 
     def eliminar(self, id: int) -> bool:
-        """Elimina el libro, precio y stock; devuelve False si no existe."""
+        """Elimina el libro, todos sus precios y stock; False si no existe."""
         with self.contexto.transaction() as session:
             modelo = session.get(LibroModel, id)
             if modelo is None:
@@ -579,7 +572,7 @@ class RepositorioLibro:
 
 
 class RepositorioPrecio:
-    """Persiste precios identificados por libro_id usando ContextManager."""
+    """Persiste precios identificados por (libro_id, moneda_id)."""
 
     def __init__(self, contexto: ContextManager):
         """Recibe el administrador de transacciones de la base de datos."""
@@ -603,52 +596,64 @@ class RepositorioPrecio:
         modelo.precio_base = float(precio.precio_base)
 
     def crear(self, precio: Precio) -> Precio:
-        """Guarda un precio para un libro existente.
+        """Guarda un precio para un libro y moneda existentes.
 
         Raises:
-            ValueError: Si ya existe un registro de precio para el libro o
+            ValueError: Si ya existe un precio para el libro y moneda o
                 la moneda no tiene ID.
         """
         with self.contexto.transaction() as session:
-            if session.get(PrecioModel, precio.libro_id) is not None:
-                raise ValueError(
-                    f"Ya existe un registro de precio para el libro {precio.libro_id}."
-                )
-
             modelo = PrecioModel(libro_id=precio.libro_id)
             self._copiar_datos(modelo, precio)
+            if session.get(PrecioModel, (precio.libro_id, precio.moneda.id)) is not None:
+                raise ValueError(
+                    f"Ya existe un precio para el libro {precio.libro_id} "
+                    f"en {precio.moneda.codigo_iso}."
+                )
+
             session.add(modelo)
 
         return precio
 
-    def leer_por_libro(self, libro_id: int) -> Precio | None:
-        """Obtiene el precio del libro o None si no existe un registro."""
+    def leer_por_libro(self, libro_id: int) -> list[Precio]:
+        """Obtiene todos los precios del libro, ordenados por moneda."""
         with self.contexto.transaction() as session:
-            modelo = session.get(PrecioModel, libro_id)
+            modelos = session.scalars(
+                select(PrecioModel).where(PrecioModel.libro_id == libro_id)
+                .order_by(PrecioModel.moneda_id)
+            )
+            return [self._a_entidad(modelo) for modelo in modelos]
+
+    def leer_por_libro_y_moneda(self, libro_id: int, moneda_id: int) -> Precio | None:
+        """Obtiene el precio de la pareja libro–moneda, o None."""
+        with self.contexto.transaction() as session:
+            modelo = session.get(PrecioModel, (libro_id, moneda_id))
             return self._a_entidad(modelo) if modelo is not None else None
 
     def actualizar(self, precio: Precio) -> Precio:
-        """Actualiza la moneda y el importe de un precio existente.
+        """Actualiza el importe de un precio identificado por libro y moneda.
 
         Raises:
             ValueError: Si no existe un registro para el libro indicado o
                 la moneda no tiene ID.
         """
         with self.contexto.transaction() as session:
-            modelo = session.get(PrecioModel, precio.libro_id)
+            if precio.moneda.id is None:
+                raise ValueError("La moneda del precio debe estar guardada previamente.")
+            modelo = session.get(PrecioModel, (precio.libro_id, precio.moneda.id))
             if modelo is None:
                 raise ValueError(
                     f"No se encontró un registro de precio para el libro "
-                    f"{precio.libro_id} para actualizar."
+                    f"{precio.libro_id} en {precio.moneda.codigo_iso} para actualizar."
                 )
             self._copiar_datos(modelo, precio)
 
         return precio
 
-    def eliminar(self, libro_id: int) -> bool:
-        """Elimina el precio del libro; devuelve False si no existe."""
+    def eliminar(self, libro_id: int, moneda_id: int) -> bool:
+        """Elimina solo el precio de esa moneda; permite eliminar el último."""
         with self.contexto.transaction() as session:
-            modelo = session.get(PrecioModel, libro_id)
+            modelo = session.get(PrecioModel, (libro_id, moneda_id))
             if modelo is None:
                 return False
             session.delete(modelo)

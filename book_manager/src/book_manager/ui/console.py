@@ -126,7 +126,7 @@ class ControladorInventario:
             "5": ("Alta de precio", self.alta_precio),
             "6": ("Modificación de precio", self.modificacion_precio),
             "7": ("Baja de precio", self.baja_precio),
-            "8": ("Buscar precio por libro", self.buscar_precio_por_libro),
+            "8": ("Buscar precios por libro", self.buscar_precios_por_libro),
             "9": ("Listar precios bimonetarios", self.listar_precios_bimonetarios),
             "10": ("Exportar precios a archivo CSV", self.exportar_precios_csv),
             "11": ("Volver atrás", None),
@@ -163,10 +163,7 @@ class ControladorInventario:
         return libro
 
     def _pedir_moneda(self):
-        """Solicita el ID de una moneda, valida su existencia y devuelve el objeto.
-
-        Si se proporciona una moneda actual, Enter conserva su ID.
-        """
+        """Solicita el ID de una moneda y valida su existencia."""
         moneda_id = input_entero("ID de moneda: ")
         moneda = self.servicio_moneda.leer_por_id(moneda_id)
         if moneda is None:
@@ -184,11 +181,16 @@ class ControladorInventario:
 
     @staticmethod
     def _mostrar_precio(libro, precio):
+        ControladorInventario._mostrar_precios(libro, [precio])
+
+    @staticmethod
+    def _mostrar_precios(libro, precios):
         mostrar_separador()
         print("ID libro", "ISBN", "Título", "Moneda", "Precio Base", sep=" | ")
         mostrar_separador()
-        print(libro.id, libro.isbn, libro.titulo,
-              precio.moneda.codigo_iso, precio.precio_base, sep=" | ")
+        for precio in precios:
+            print(libro.id, libro.isbn, libro.titulo,
+                  precio.moneda.codigo_iso, f"{precio.precio_base:.2f}", sep=" | ")
 
     def alta_stock(self):
         print("\n--- ALTA DE STOCK ---")
@@ -274,7 +276,7 @@ class ControladorInventario:
                 moneda=self._pedir_moneda(),
                 precio_base=input_decimal("Precio base: "),
             )
-            self.servicio.guardar_precio(precio)
+            self.servicio.crear_precio(precio)
             print("Precio creado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear el precio: {error}")
@@ -283,21 +285,18 @@ class ControladorInventario:
         print("\n--- MODIFICACIÓN DE PRECIO ---")
         try:
             libro = self._pedir_libro()
-            actual = self.servicio.leer_precio_por_libro(libro.id)
+            actual = self._seleccionar_precio(libro)
             if actual is None:
-                print("No hay precio registrado para ese libro.")
                 return
             self._mostrar_precio(libro, actual)
             print("Presione Enter para conservar el valor actual.")
-            moneda = self._pedir_moneda(actual.moneda)
             precio_base = input_decimal(
                 f"Precio base [{actual.precio_base}]: ",
                 valor_actual=actual.precio_base,
             )
            
-            actual.moneda = moneda
             actual.precio_base = precio_base
-            self.servicio.guardar_precio(actual)
+            self.servicio.actualizar_precio(actual)
             print("Precio modificado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo modificar el precio: {error}")
@@ -306,33 +305,47 @@ class ControladorInventario:
         print("\n--- BAJA DE PRECIO ---")
         try:
             libro = self._pedir_libro()
-            precio = self.servicio.leer_precio_por_libro(libro.id)
+            precio = self._seleccionar_precio(libro)
             if precio is None:
-                print("No hay precio registrado para ese libro.")
                 return
             self._mostrar_precio(libro, precio)
             confirmacion = input(
-                f"¿Eliminar el precio de '{libro.titulo}'? [s/N]: "
+                f"¿Eliminar el precio de '{libro.titulo}' en "
+                f"{precio.moneda.codigo_iso} por {precio.precio_base}? [s/N]: "
             ).strip().lower()
             if confirmacion not in ("s", "si", "sí"):
                 print("Baja cancelada.")
                 return
-            if self.servicio.eliminar_precio_por_libro(libro.id):
+            if self.servicio.eliminar_precio_por_libro_y_moneda(libro.id, precio.moneda.id):
                 print("Precio eliminado correctamente.")
             else:
                 print("No se encontró el precio.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo eliminar el precio: {error}")
 
-    def buscar_precio_por_libro(self):
-        print("\n--- BÚSQUEDA DE PRECIO POR LIBRO ---")
+    def _seleccionar_precio(self, libro):
+        """Muestra los precios registrados y selecciona uno por ID de moneda."""
+        precios = self.servicio.leer_precios_por_libro(libro.id)
+        if not precios:
+            print("Sin precios registrados.")
+            return None
+        for precio in precios:
+            print(f"Moneda {precio.moneda.id}: {precio.moneda.codigo_iso} {precio.precio_base}")
+        moneda_id = input_entero("ID de moneda del precio: ")
+        for precio in precios:
+            if precio.moneda.id == moneda_id:
+                return precio
+        raise ValueError("El libro no tiene un precio registrado en esa moneda.")
+
+    def buscar_precios_por_libro(self):
+        print("\n--- BÚSQUEDA DE PRECIOS POR LIBRO ---")
         try:
             libro = self._pedir_libro()
-            precio = self.servicio.leer_precio_por_libro(libro.id)
-            if precio is None:
-                print("No hay precio registrado para ese libro.")
+            precios = self.servicio.leer_precios_por_libro(libro.id)
+            if not precios:
+                print("Sin precios registrados.")
                 return
-            self._mostrar_precio(libro, precio)
+            self._mostrar_precios(libro, precios)
         except (ValueError, TypeError) as error:
             print(f"No se pudo buscar el precio: {error}")
 
@@ -374,7 +387,7 @@ class ControladorCatalogo:
         mostrar_separador()
         print("ID", "ISBN", "Título", "Autor", "Peso (g)", "Dimensiones",
               "Páginas", "Fecha de publicación", "Idioma", "Editorial",
-              "Género", "Precio", "Stock Total", sep=" | ")
+              "Género", "Stock Total", sep=" | ")
         mostrar_separador()
         for libro in libros:
             print(f"{libro.id}", 
@@ -388,7 +401,6 @@ class ControladorCatalogo:
                   f"{libro.idioma}", 
                   f"{libro.editorial.nombre}", 
                   f"{libro.genero.nombre}",
-                  f"{libro.precio.moneda.simbolo} {libro.precio.precio_base}" if libro.precio else "Sin Precio",
                   f"{libro.stock.cantidad_total}" if libro.stock else "Sin Stock",
                   sep=" | ")
 
