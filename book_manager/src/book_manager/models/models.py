@@ -1,6 +1,6 @@
 """Modelos SQLAlchemy para persistir las entidades de la librería."""
 
-from sqlalchemy import Column, Date, Float, ForeignKey, Integer, String, Text, UniqueConstraint
+from sqlalchemy import Column, Date, Float, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -122,7 +122,8 @@ class CotizacionModel(Base):
         Integer, ForeignKey("tipos_cotizacion.id"), nullable=False,
     )
     fecha = Column(Date, nullable=False)
-    valor = Column(Float, nullable=False)
+    compra = Column(Numeric(12, 2), nullable=False)
+    venta = Column(Numeric(12, 2), nullable=False)
 
     moneda_origen = relationship("MonedaModel", foreign_keys=[moneda_origen_id])
     moneda_destino = relationship("MonedaModel", foreign_keys=[moneda_destino_id])

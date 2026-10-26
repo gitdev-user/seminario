@@ -445,20 +445,22 @@ class Stock:
 
 
 class Cotizacion:
-    """Representa el valor de conversión entre dos monedas en una fecha."""
+    """Representa los importes de compra y venta entre dos monedas en una fecha."""
 
     def __init__(
         self,
         moneda_origen: Moneda,
         moneda_destino: Moneda,
         tipo_cotizacion: TipoCotizacion,
-        valor: Decimal,
+        compra: Decimal,
+        venta: Decimal,
         fecha: date
     ):
         self.moneda_origen = moneda_origen
         self.moneda_destino = moneda_destino
         self.tipo_cotizacion = tipo_cotizacion
-        self.valor = valor
+        self.compra = compra
+        self.venta = venta
         self.fecha = fecha
 
     # Propiedad moneda_origen
@@ -503,46 +505,87 @@ class Cotizacion:
 
         self._tipo_cotizacion = valor
 
-    # Propiedad valor
+    # Propiedad compra
     @property
-    def valor(self) -> Decimal:
-        return self._valor
+    def compra(self) -> Decimal:
+        return self._compra
 
-    @valor.setter
-    def valor(self, valor: Decimal):
+    @compra.setter
+    def compra(self, valor: Decimal):
         if isinstance(valor, bool):
-            raise TypeError("El valor debe ser numérico.")
+            raise TypeError("La compra debe ser numérica.")
 
         try:
             valor = Decimal(str(valor))
         except (InvalidOperation, ValueError, TypeError):
             raise TypeError(
-                "El valor de la cotización debe ser numérico."
+                "La compra de la cotización debe ser numérica."
             )
 
         if not valor.is_finite():
             raise ValueError(
-                "El valor no puede ser infinito ni nulo."
+                "La compra no puede ser infinita ni nula."
             )
 
         if valor <= 0:
             raise ValueError(
-                "El valor de la cotización debe ser mayor a cero."
+                "La compra de la cotización debe ser mayor a cero."
             )
 
         # Validar máximo de 2 decimales
         if valor.as_tuple().exponent < -2:
             raise ValueError(
-                "El valor no puede tener más de 2 decimales."
+                "La compra no puede tener más de 2 decimales."
             )
 
         # Validar máximo de 12 dígitos (10 enteros + 2 decimales)
         if valor >= Decimal("10000000000"):
             raise ValueError(
-                "El valor no puede superar los 10 dígitos enteros."
+                "La compra no puede superar los 10 dígitos enteros."
             )
 
-        self._valor = valor
+        self._compra = valor
+
+    # Propiedad venta
+    @property
+    def venta(self) -> Decimal:
+        return self._venta
+
+    @venta.setter
+    def venta(self, valor: Decimal):
+        if isinstance(valor, bool):
+            raise TypeError("La venta debe ser numérica.")
+
+        try:
+            valor = Decimal(str(valor))
+        except (InvalidOperation, ValueError, TypeError):
+            raise TypeError(
+                "La venta de la cotización debe ser numérica."
+            )
+
+        if not valor.is_finite():
+            raise ValueError(
+                "La venta no puede ser infinita ni nula."
+            )
+
+        if valor <= 0:
+            raise ValueError(
+                "La venta de la cotización debe ser mayor a cero."
+            )
+
+        # Validar máximo de 2 decimales
+        if valor.as_tuple().exponent < -2:
+            raise ValueError(
+                "La venta no puede tener más de 2 decimales."
+            )
+
+        # Validar máximo de 12 dígitos (10 enteros + 2 decimales)
+        if valor >= Decimal("10000000000"):
+            raise ValueError(
+                "La venta no puede superar los 10 dígitos enteros."
+            )
+
+        self._venta = valor
 
     # Propiedad fecha
     @property

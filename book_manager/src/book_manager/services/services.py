@@ -109,85 +109,95 @@ class ServicioCotizacion:
         self.repositorio_tipo_cotizacion = repositorio_tipo_cotizacion
 
     def obtener_cotizaciones(self) -> List[Cotizacion]:
-        """Descarga las cotizaciones de venta y las registra hacia ARS.
-
-        Utiliza moneda, casa, venta y fechaActualizacion de DolarAPI. Busca
-        las monedas por código ISO y los tipos por nombre, reemplazando
-        contadoconliqui por CCL. Valida todos los datos antes de registrarlos.
-        Si ya existe el mismo tipo, monedas y fecha, actualiza su valor.
-
-        Returns:
-            Cotizaciones creadas o actualizadas mediante el repositorio.
-
-        Raises:
-            ValueError: Si falta configuración, referencias o datos válidos.
-            RuntimeError: Si falla la descarga de la API.
-        """
-        if self.repositorio_moneda is None or self.repositorio_tipo_cotizacion is None:
-            raise ValueError("Se requieren los repositorios de monedas y tipos de cotización.")
-
+        """Importa cotizaciones de compra y venta, omitiendo registros con errores."""
+      
         archivo_env = Path(__file__).resolve().parents[3] / ".env"
-        api_url = os.getenv("API_URL", dotenv_values(archivo_env).get("API_URL"))
+        api_url = os.getenv("API_URL") or dotenv_values(archivo_env).get("API_URL")
         if not api_url:
             raise ValueError("La variable API_URL no está definida.")
-
-        solicitud = Request(api_url, headers={
-            "User-Agent": "Mozilla/5.0 (compatible; BookManager/1.0)",
-            "Accept": "application/json",
-        })
-        try:
-            with urlopen(solicitud, timeout=10) as respuesta:
-                datos = json.load(respuesta, parse_float=Decimal)
-        except HTTPError as error:
-            raise RuntimeError(f"DolarAPI devolvió HTTP {error.code}: {error.reason}.") from error
-        except (URLError, TimeoutError) as error:
-            raise RuntimeError("No se pudieron descargar las cotizaciones.") from error
-        except (ValueError, UnicodeDecodeError) as error:
-            raise ValueError("La API no devolvió un JSON válido.") from error
-
-        if not isinstance(datos, list) or not datos:
-            raise ValueError("La API debe devolver una lista no vacía de cotizaciones.")
 
         destino = self.repositorio_moneda.leer_por_codigo_iso("ARS")
         if destino is None:
             raise ValueError("La moneda ARS no está registrada.")
 
+        solicitud = Request(
+            api_url,
+            headers={
+                "User-Agent": "Mozilla/5.0 (compatible; BookManager/1.0)",
+                "Accept": "application/json",
+            },
+        )
+
+        try:
+            with urlopen(solicitud, timeout=10) as respuesta:
+                datos = json.load(respuesta, parse_float=Decimal)
+        except HTTPError as error:
+            raise RuntimeError(
+                f"DolarAPI devolvió HTTP {error.code}: {error.reason}."
+            ) from error
+        except (URLError, TimeoutError) as error:
+            raise RuntimeError(
+                "No se pudieron descargar las cotizaciones."
+            ) from error
+        except (ValueError, UnicodeDecodeError) as error:
+            raise ValueError("La API no devolvió un JSON válido.") from error
+
+        if not isinstance(datos, list) or not datos:
+            raise ValueError("La API debe devolver una lista no vacía.")
+
         cotizaciones = []
+        nombres_tipos = {"contadoconliqui": "CCL"}
+
         for indice, dato in enumerate(datos, start=1):
-            if not isinstance(dato, dict):
-                raise ValueError(f"La cotización {indice} no es un objeto válido.")
             try:
+                if not isinstance(dato, dict):
+                    raise ValueError("El registro debe ser un objeto.")
+
                 codigo_iso = dato["moneda"].strip().upper()
                 casa = dato["casa"].strip()
-                nombre_tipo = "CCL" if casa.casefold() == "contadoconliqui" else casa
+                nombre_tipo = nombres_tipos.get(casa.casefold(), casa)
+
                 if not codigo_iso or not nombre_tipo:
                     raise ValueError("La moneda y la casa no pueden estar vacías.")
-                valor = Decimal(str(dato["venta"]))
+
+                compra = Decimal(str(dato["compra"]))
+                venta = Decimal(str(dato["venta"]))
                 fecha = datetime.fromisoformat(
                     dato["fechaActualizacion"].replace("Z", "+00:00")
                 ).date()
-            except (KeyError, TypeError, ValueError, InvalidOperation, AttributeError) as error:
-                raise ValueError(f"Datos inválidos en la cotización {indice}.") from error
 
-            origen = self.repositorio_moneda.leer_por_codigo_iso(codigo_iso)
-            if origen is None:
-                raise ValueError(f"La moneda {codigo_iso} no está registrada.")
-            tipo = self.repositorio_tipo_cotizacion.leer_por_nombre(nombre_tipo)
-            if tipo is None:
-                raise ValueError(f"El tipo de cotización '{nombre_tipo}' no está registrado.")
+                origen = self.repositorio_moneda.leer_por_codigo_iso(codigo_iso)
+                if origen is None:
+                    raise ValueError(f"La moneda {codigo_iso} no está registrada.")
 
-            cotizaciones.append(Cotizacion(
-                moneda_origen=origen,
-                moneda_destino=destino,
-                tipo_cotizacion=tipo,
-                valor=valor,
-                fecha=fecha,
-            ))
+                tipo = self.repositorio_tipo_cotizacion.leer_por_nombre(nombre_tipo)
 
-        return [self.guardar(cotizacion) for cotizacion in cotizaciones]
+                if tipo is None:
+                    tipo = TipoCotizacion(
+                        nombre=nombre_tipo,
+                        descripcion=f"Cotización {nombre_tipo} obtenida desde API.",
+                    )
+                    tipo = self.repositorio_tipo_cotizacion.crear(tipo)
+
+                cotizacion = Cotizacion(
+                    moneda_origen=origen,
+                    moneda_destino=destino,
+                    tipo_cotizacion=tipo,
+                    compra=compra,
+                    venta=venta,
+                    fecha=fecha,
+                )
+
+                cotizaciones.append(self.guardar(cotizacion))
+
+            except Exception as error:
+                print(f"No se pudo importar la cotización {indice}: {error}")
+                continue
+
+        return cotizaciones
 
     def guardar(self, cotizacion: Cotizacion) -> Cotizacion:
-        """Crea la cotización o actualiza su valor si ya existe su clave."""
+        """Crea la cotización o actualiza compra y venta si ya existe su clave."""
         existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
             cotizacion.tipo_cotizacion.id,
             cotizacion.moneda_origen.id,

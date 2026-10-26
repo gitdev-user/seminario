@@ -621,7 +621,8 @@ class ControladorCotizacion:
     @staticmethod
     def _mostrar(cotizaciones):
         mostrar_separador()
-        print("Moneda origen", "Moneda destino", "Tipo de cotización", "Fecha", "Valor", sep=" | ")
+        print("Moneda origen", "Moneda destino", "Tipo de cotización",
+              "Fecha", "Compra", "Venta", sep=" | ")
         mostrar_separador()
         for cotizacion in cotizaciones:
             print(
@@ -629,7 +630,8 @@ class ControladorCotizacion:
                 cotizacion.moneda_destino.codigo_iso,
                 cotizacion.tipo_cotizacion.nombre,
                 cotizacion.fecha,
-                f"{cotizacion.valor:.2f}",
+                f"{cotizacion.compra:.2f}",
+                f"{cotizacion.venta:.2f}",
                 sep=" | ",
             )
 
@@ -657,7 +659,8 @@ class ControladorCotizacion:
                 moneda_origen=origen,
                 moneda_destino=destino,
                 tipo_cotizacion=tipo,
-                valor=input_decimal("Valor (use punto para decimales): "),
+                compra=input_decimal("Compra (use punto para decimales): "),
+                venta=input_decimal("Venta (use punto para decimales): "),
                 fecha=fecha,
             )
             self.servicio.guardar(cotizacion)
@@ -691,9 +694,13 @@ class ControladorCotizacion:
                 print("No existe esa cotización.")
                 return
             
-            actual.valor = input_decimal(
-                f"Valor [{actual.valor}] (Enter para conservar): ",
-                valor_actual=actual.valor,
+            actual.compra = input_decimal(
+                f"Compra [{actual.compra}] (Enter para conservar): ",
+                valor_actual=actual.compra,
+            )
+            actual.venta = input_decimal(
+                f"Venta [{actual.venta}] (Enter para conservar): ",
+                valor_actual=actual.venta,
             )
             self.servicio.guardar(actual)
             print("Cotización modificada correctamente.")

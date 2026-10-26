@@ -782,7 +782,8 @@ class RepositorioCotizacion:
             moneda_origen=RepositorioMoneda._a_entidad(modelo.moneda_origen),
             moneda_destino=RepositorioMoneda._a_entidad(modelo.moneda_destino),
             tipo_cotizacion=RepositorioTipoCotizacion._a_entidad(modelo.tipo_cotizacion),
-            valor=Decimal(str(modelo.valor)),
+            compra=modelo.compra,
+            venta=modelo.venta,
             fecha=modelo.fecha,
         )
         cotizacion.id = modelo.id
@@ -803,7 +804,8 @@ class RepositorioCotizacion:
                 moneda_origen_id=clave[1],
                 moneda_destino_id=clave[2],
                 fecha=clave[3],
-                valor=float(cotizacion.valor),
+                compra=cotizacion.compra,
+                venta=cotizacion.venta,
             )
             session.add(modelo)
             session.flush()
@@ -844,13 +846,14 @@ class RepositorioCotizacion:
             return [self._a_entidad(modelo) for modelo in session.scalars(consulta)]
 
     def actualizar(self, cotizacion: Cotizacion) -> Cotizacion:
-        """Actualiza el valor; falla si no existe la clave compuesta recibida."""
+        """Actualiza compra y venta; falla si no existe la clave compuesta recibida."""
         clave = self._obtener_clave(cotizacion)
         with self.contexto.transaction() as session:
             modelo = self._buscar_modelo(session, clave)
             if modelo is None:
                 raise ValueError("No se encontró la cotización para actualizar.")
-            modelo.valor = float(cotizacion.valor)
+            modelo.compra = cotizacion.compra
+            modelo.venta = cotizacion.venta
             cotizacion_id = modelo.id
         cotizacion.id = cotizacion_id
         return cotizacion
