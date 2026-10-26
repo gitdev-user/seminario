@@ -81,7 +81,7 @@ class PrecioModel(Base):
     # Cada libro admite un precio por moneda.
     libro_id = Column(Integer, ForeignKey("libros.id"), primary_key=True)
     moneda_id = Column(Integer, ForeignKey("monedas.id"), primary_key=True)
-    precio_base = Column(Float, nullable=False)
+    precio_base = Column(Numeric(12, 2), nullable=False)
 
     libro = relationship("LibroModel", back_populates="precios")
     moneda = relationship("MonedaModel")

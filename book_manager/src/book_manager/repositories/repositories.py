@@ -1,19 +1,294 @@
 """Repositorios que persisten entidades mediante SQLAlchemy."""
 
+import abc
 from decimal import Decimal
 from datetime import date
+from typing import Generic, List, Optional, TypeVar
 
 from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database.connection import ContextManager
-from entities.entities import Cotizacion, Editorial, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
+from entities.entities import Cotizacion, Editorial, EntidadBase, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
 from models.models import (
     EditorialModel, GeneroModel, LibroModel, MonedaModel,
     PrecioModel, StockModel, TipoCotizacionModel, CotizacionModel,
 )
 
-class RepositorioEditorial():
+T = TypeVar('T', bound=EntidadBase)
+
+
+class IRepositorio(abc.ABC, Generic[T]):
+    """Interfaz para repositorios que manejan entidades con operaciones CRUD básicas."""
+
+    @abc.abstractmethod
+    def crear(self, entidad: T) -> T:
+        """Crea una nueva entidad en el repositorio.
+
+        Args:
+            entidad (T): La entidad a crear.
+
+        Returns:
+            T: La entidad creada.
+
+        Raises:
+            ValueError: Si ya existe una entidad con el mismo ID.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_por_id(self, id: int) -> Optional[T]:
+        """Lee una entidad del repositorio por su ID.
+
+        Args:
+            id (int): El ID de la entidad a leer.
+
+        Returns:
+            Optional[T]: La entidad si se encuentra, None en caso contrario.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_todos(self) -> List[T]:
+        """Lee todas las entidades del repositorio.
+
+        Returns:
+            List[T]: Una lista de todas las entidades.
+        """
+        pass
+
+    @abc.abstractmethod
+    def actualizar(self, entidad: T) -> T:
+        """Actualiza una entidad existente en el repositorio.
+
+        Args:
+            entidad (T): La entidad a actualizar (debe tener un ID existente).
+
+        Returns:
+            T: La entidad actualizada.
+
+        Raises:
+            ValueError: Si no se encuentra la entidad para actualizar.
+        """
+        pass
+
+    @abc.abstractmethod
+    def eliminar(self, id: int) -> bool:
+        """Elimina una entidad del repositorio por su ID.
+
+        Args:
+            id (int): El ID de la entidad a eliminar.
+
+        Returns:
+            bool: True si la entidad fue eliminada, False si no se encontró.
+        """
+        pass
+
+class IRepositorioPrecio(abc.ABC):
+    """Interfaz para repositorios del tipo Precio."""
+
+    @abc.abstractmethod
+    def crear(self, precio: Precio) -> Precio:
+        """Crea un nuevo registro de precio para un libro.
+
+        Args:
+            precio (Precio): El objeto Precio a crear.
+
+        Returns:
+            Precio: El objeto Precio creado.
+
+        Raises:
+            ValueError: Si ya existe un precio asignado a ese mismo libro y moneda.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_por_libro(self, libro_id: int) -> list[Precio]:
+        """Lee el precio de un libro por su ID de libro.
+
+        Args:
+            libro_id (int): El ID del libro asociado al precio.
+
+        Returns:
+            list[Precio]: Una lista de objetos Precio si se encuentran, una lista vacía en caso contrario.
+        """
+        pass
+
+    @abc.abstractmethod
+    def actualizar(self, precio: Precio) -> Precio:
+        """Actualiza un registro de precio existente.
+
+        Args:
+            precio (Precio): El objeto Precio a actualizar.
+
+        Returns:
+            Precio: El objeto Precio actualizado.
+
+        Raises:
+            ValueError: Si no se encuentra el precio para actualizar.
+        """
+        pass
+
+    @abc.abstractmethod
+    def eliminar(self, libro_id: int, moneda_id: int) -> bool:
+        """Elimina el registro de precio de un libro por su ID de libro y el ID de la moneda.
+
+        Args:
+            libro_id (int): El ID del libro asociado al precio a eliminar.
+            moneda_id (int): El ID de la moneda asociada al precio a eliminar.
+
+        Returns:
+            bool: True si el precio fue eliminado, False si no se encontró.
+        """
+        pass
+
+class IRepositorioStock(abc.ABC):
+    """Interfaz para repositorios del tipo Stock."""
+
+    @abc.abstractmethod
+    def crear(self, stock: Stock) -> Stock:
+        """Crea un nuevo registro de stock.
+
+        Args:
+            stock (Stock): El objeto Stock a crear.
+
+        Returns:
+            Stock: El objeto Stock creado.
+
+        Raises:
+            ValueError: Si ya existe un registro de stock para el mismo libro.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_por_libro(self, libro_id: int) -> Optional['Stock']:
+        """Lee un registro de stock por ID de libro.
+
+        Args:
+            libro_id (int): El ID del libro asociado al stock.
+
+        Returns:
+            Optional[Stock]: El objeto Stock si se encuentra, None en caso contrario.
+        """
+        pass
+
+    @abc.abstractmethod
+    def actualizar(self, stock: 'Stock') -> 'Stock':
+        """Actualiza un registro de stock existente.
+
+        Args:
+            stock (Stock): El objeto Stock a actualizar (debe tener un libro_id existente).
+
+        Returns:
+            Stock: El objeto Stock actualizado.
+
+        Raises:
+            ValueError: Si no se encuentra el stock para actualizar.
+        """
+        pass
+
+    @abc.abstractmethod
+    def eliminar(self, libro_id: int) -> bool:
+        """Elimina un registro de stock por ID de libro.
+
+        Args:
+            libro_id (int): El ID del libro asociado al stock a eliminar.
+
+        Returns:
+            bool: True si el stock fue eliminado, False si no se encontró.
+        """
+        pass
+
+class IRepositorioCotizacion(abc.ABC):
+    """Interfaz para repositorios del tipo RepositorioCotizacion."""
+
+    @abc.abstractmethod
+    def crear(self, cotizacion: 'Cotizacion') -> 'Cotizacion':
+        """Crea una nueva cotización.
+
+        Args:
+            cotizacion (Cotizacion): El objeto Cotizacion a crear.
+
+        Returns:
+            Cotizacion: El objeto Cotizacion creado.
+
+        Raises:
+            ValueError: Si ya existe una cotización para el mismo tipo y fecha.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_por_tipo_moneda_origen_destino_y_fecha(
+        self,
+        tipo_id: int,
+        moneda_origen_id: int,
+        moneda_destino_id: int,
+        fecha: date) -> Optional['Cotizacion']:
+        """Lee una cotización de dólar por tipo y fecha.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización (e.g., 'Oficial', 'Blue').
+            moneda_origen_id (int): El ID de la moneda de origen.
+            moneda_destino_id (int): El ID de la moneda de destino.
+            fecha (datetime.date): La fecha de la cotización.
+
+        Returns:
+            Optional[Cotizacion]: La cotización si se encuentra, None en caso contrario.
+        """
+        pass
+
+    @abc.abstractmethod
+    def leer_historico_por_tipo_moneda_origen_moneda_destino(
+        self,
+        tipo_id: int,
+        moneda_origen_id: int,
+        moneda_destino_id: int) -> List['Cotizacion']:
+        """Lee el histórico de cotizaciones para un tipo específico.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización.
+            moneda_origen_id (int): El ID de la moneda de origen.
+            moneda_destino_id (int): El ID de la moneda de destino.
+
+        Returns:
+            List[Cotizacion]: Una lista de cotizaciones históricas para el tipo dado.
+        """
+        pass
+
+    @abc.abstractmethod
+    def actualizar(self, cotizacion: 'Cotizacion') -> 'Cotizacion':
+        """Actualiza una cotización de dólar existente.
+
+        Args:
+            cotizacion (Cotizacion): El objeto Cotizacion a actualizar.
+
+        Returns:
+            Cotizacion: El objeto Cotizacion actualizado.
+        """
+        pass
+
+    @abc.abstractmethod
+    def eliminar(
+        self,
+        tipo_id: int,
+        moneda_origen_id: int,
+        moneda_destino_id: int,
+        fecha: date) -> bool:
+        """Elimina una cotización de dólar por tipo y fecha.
+
+        Args:
+            tipo_id (int): El ID del tipo de cotización.
+            moneda_origen_id (int): El ID de la moneda de origen.
+            moneda_destino_id (int): El ID de la moneda de destino.
+            fecha (datetime.date): La fecha de la cotización a eliminar.
+
+        Returns:
+            bool: True si la cotización fue eliminada, False si no se encontró.
+        """
+        pass
+
+
+class RepositorioEditorial(IRepositorio[Editorial]):
     """Persiste editoriales y administra las sesiones con ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -121,7 +396,7 @@ class RepositorioEditorial():
             return True
 
 
-class RepositorioGenero:
+class RepositorioGenero(IRepositorio[Genero]):
     """Persiste géneros y administra las sesiones con ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -214,7 +489,7 @@ class RepositorioGenero:
             return True
 
 
-class RepositorioMoneda:
+class RepositorioMoneda(IRepositorio[Moneda]):
     """Persiste monedas y administra las sesiones con ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -313,7 +588,7 @@ class RepositorioMoneda:
             return True
 
 
-class RepositorioTipoCotizacion:
+class RepositorioTipoCotizacion(IRepositorio[TipoCotizacion]):
     """Persiste tipos de cotización y administra sesiones con ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -416,7 +691,7 @@ class RepositorioTipoCotizacion:
             return True
 
 
-class RepositorioLibro:
+class RepositorioLibro(IRepositorio[Libro]):
     """Persiste libros con sus relaciones usando ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -571,7 +846,7 @@ class RepositorioLibro:
             return True
 
 
-class RepositorioPrecio:
+class RepositorioPrecio(IRepositorioPrecio):
     """Persiste precios identificados por (libro_id, moneda_id)."""
 
     def __init__(self, contexto: ContextManager):
@@ -593,7 +868,7 @@ class RepositorioPrecio:
         if precio.moneda.id is None:
             raise ValueError("La moneda del precio debe estar guardada previamente.")
         modelo.moneda_id = precio.moneda.id
-        modelo.precio_base = float(precio.precio_base)
+        modelo.precio_base = precio.precio_base
 
     def crear(self, precio: Precio) -> Precio:
         """Guarda un precio para un libro y moneda existentes.
@@ -670,7 +945,7 @@ class RepositorioPrecio:
             return session.scalar(consulta) is not None
 
 
-class RepositorioStock:
+class RepositorioStock(IRepositorioStock):
     """Persiste stock identificado por libro_id usando ContextManager."""
 
     def __init__(self, contexto: ContextManager):
@@ -742,7 +1017,7 @@ class RepositorioStock:
             return True
 
 
-class RepositorioCotizacion:
+class RepositorioCotizacion(IRepositorioCotizacion):
     """Persiste cotizaciones con ID propio y combinación única de tipo, monedas y fecha."""
 
     def __init__(self, contexto: ContextManager):

@@ -602,7 +602,7 @@ class Cotizacion:
         self._fecha = valor
 
 
-class Libro:
+class Libro(EntidadBase):
     """Representa un libro con sus datos bibliográficos, precios y stock."""
 
     def __init__(
@@ -620,6 +620,7 @@ class Libro:
         precios: list[Precio] | None = None,
         stock: Stock = None
     ):
+        super().__init__()
         self.isbn = isbn
         self.titulo = titulo
         self.autor = autor
