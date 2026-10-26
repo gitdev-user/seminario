@@ -276,7 +276,7 @@ class ControladorInventario:
                 moneda=self._pedir_moneda(),
                 precio_base=input_decimal("Precio base: "),
             )
-            self.servicio.crear_precio(precio)
+            self.servicio.guardar_precio(precio)
             print("Precio creado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear el precio: {error}")
@@ -296,7 +296,7 @@ class ControladorInventario:
             )
            
             actual.precio_base = precio_base
-            self.servicio.actualizar_precio(actual)
+            self.servicio.guardar_precio(actual)
             print("Precio modificado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo modificar el precio: {error}")

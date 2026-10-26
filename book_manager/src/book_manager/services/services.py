@@ -39,8 +39,8 @@ class ServicioInventario:
         self.repositorio_stock = repositorio_stock
         self.repositorio_moneda = repositorio_moneda
 
-    def _validar_precio(self, precio: Precio) -> None:
-        """Comprueba las referencias del precio antes de persistirlo."""
+    def guardar_precio(self, precio: Precio) -> Precio:
+        """Valida las referencias y crea o actualiza el precio."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {precio.libro_id}.")
@@ -51,14 +51,13 @@ class ServicioInventario:
 
         precio.moneda = moneda
 
-    def crear_precio(self, precio: Precio) -> Precio:
-        """Crea un precio; rechaza parejas libro–moneda duplicadas."""
-        self._validar_precio(precio)
-        return self.repositorio_precio.crear(precio)
+        existente = self.repositorio_precio.leer_por_libro_y_moneda(
+            precio.libro_id, precio.moneda.id
+        )
 
-    def actualizar_precio(self, precio: Precio) -> Precio:
-        """Modifica el importe de una pareja libro–moneda existente."""
-        self._validar_precio(precio)
+        if existente is None:
+            return self.repositorio_precio.crear(precio)
+
         return self.repositorio_precio.actualizar(precio)
 
     def guardar_stock(self, stock: Stock) -> Stock:
