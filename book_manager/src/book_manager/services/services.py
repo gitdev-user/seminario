@@ -3,7 +3,7 @@
 import json
 import os
 from datetime import date, datetime
-from decimal import Decimal, InvalidOperation
+from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
 from pathlib import Path
 from typing import List, Optional
 from urllib.error import HTTPError, URLError
@@ -244,6 +244,51 @@ class ServicioCotizacion:
         return self.repositorio.leer_historico_por_tipo_moneda_origen_moneda_destino(
             tipo_id, moneda_origen_id, moneda_destino_id
         )
+
+    def leer_ultima_por_tipo_y_monedas(
+        self,
+        tipo_id: int,
+        moneda_origen_id: int,
+        moneda_destino_id: int,
+    ) -> Optional[Cotizacion]:
+        """Devuelve la cotización más reciente del tipo y las monedas indicadas."""
+        cotizaciones = (
+            self.repositorio
+            .leer_historico_por_tipo_moneda_origen_moneda_destino(
+                tipo_id,
+                moneda_origen_id,
+                moneda_destino_id,
+            )
+        )
+
+        return max(
+            cotizaciones,
+            key=lambda cotizacion: cotizacion.fecha,
+            default=None,
+        )
+
+    def leer_ultimas_cotizaciones_por_monedas(
+        self,
+        moneda_origen: Moneda,
+        moneda_destino: Moneda,
+    )-> list[Cotizacion]:
+        """Devuelve la última cotización disponible por cada tipo."""
+        if moneda_origen.id is None or moneda_destino.id is None:
+            raise ValueError("Las monedas deben estar registradas.")
+
+
+        cotizaciones = []
+
+        for tipo in self.repositorio_tipo_cotizacion.leer_todos():
+            ultima = self.leer_ultima_por_tipo_y_monedas(
+                tipo.id,
+                moneda_origen.id,
+                moneda_destino.id,
+        )
+            if ultima is not None:
+                cotizaciones.append(ultima)
+
+        return cotizaciones
 
 
 class ServicioCatalogo:
@@ -509,3 +554,35 @@ class ServicoMoneda:
             )
 
         return self.repositorio.eliminar(id)
+
+class ServicioCotizador:
+    """Convierte precios entre las monedas de una cotización."""
+
+    @staticmethod
+    def convertir_precio(
+        precio: Precio,
+        cotizacion: Cotizacion,
+    ) -> Decimal:
+
+        if precio is None and cotizacion is None:
+            raise ValueError("Se requieren un precio y una cotización.")
+
+        if precio is None:
+            raise ValueError("Se requiere un precio para convertir.")
+
+        if cotizacion is None:
+            raise ValueError("Se requiere una cotización para convertir.")
+        
+        moneda = precio.moneda.codigo_iso
+        origen = cotizacion.moneda_origen.codigo_iso
+        destino = cotizacion.moneda_destino.codigo_iso
+        tasa = cotizacion.venta
+
+        if moneda == origen:
+            resultado = precio.precio_base * tasa
+        elif moneda == destino:
+            resultado = precio.precio_base / tasa
+        else:
+            raise ValueError("La moneda del precio no pertenece a la cotización.")
+
+        return resultado.quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

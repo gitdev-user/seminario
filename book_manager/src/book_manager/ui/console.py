@@ -1,4 +1,6 @@
+import csv
 from datetime import date
+from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -29,6 +31,7 @@ from services.services import (
     ServicioCotizacion,
     ServicioCatalogo,
     ServicioInventario,
+    ServicioCotizador,
  )
 
 
@@ -57,7 +60,8 @@ class ConsolaGeneral:
                 servicio_catalogo, servicio_editorial, servicio_genero
             ),
             "6": ControladorInventario(
-                servicio_inventario, servicio_catalogo, servicio_moneda
+                servicio_inventario, servicio_catalogo, servicio_moneda,
+                servicio_tipo_cotizacion, servicio_cotizacion,
             ),
             "7": ControladorCotizacion(
                 servicio_cotizacion, servicio_moneda, servicio_tipo_cotizacion
@@ -112,10 +116,14 @@ class ControladorInventario:
 
     def __init__(self, servicio: ServicioInventario,
                  servicio_catalogo: ServicioCatalogo,
-                 servicio_moneda: ServicoMoneda):
+                 servicio_moneda: ServicoMoneda,
+                 servicio_tipo_cotizacion: ServicioTipoCotizacion,
+                 servicio_cotizacion: ServicioCotizacion):
         self.servicio = servicio
         self.servicio_catalogo = servicio_catalogo
         self.servicio_moneda = servicio_moneda
+        self.servicio_tipo_cotizacion = servicio_tipo_cotizacion
+        self.servicio_cotizacion = servicio_cotizacion
 
     def ejecutar(self):
         opciones = {
@@ -127,7 +135,7 @@ class ControladorInventario:
             "6": ("Modificación de precio", self.modificacion_precio),
             "7": ("Baja de precio", self.baja_precio),
             "8": ("Buscar precios por libro", self.buscar_precios_por_libro),
-            "9": ("Listar precios bimonetarios", self.listar_precios_bimonetarios),
+            "9": ("Mostrar precios bimonetarios", self.mostrar_precios_bimonetarios),
             "10": ("Exportar precios a archivo CSV", self.exportar_precios_csv),
             "11": ("Volver atrás", None),
         }
@@ -145,13 +153,136 @@ class ControladorInventario:
                 accion()
             input("\nPresione Enter para continuar...")
 
-    def listar_precios_bimonetarios(self):
-        """Informa que el listado de precios bimonetarios está pendiente."""
-        print("Sección en construcción")
+    def mostrar_precios_bimonetarios(self):
+        """Muestra los precios en ARS y en la moneda secundaria seleccionada."""
+        print("\n--- LISTA DE PRECIOS BIMONETARIA ---")
+
+        try:
+            moneda_secundaria = self._pedir_moneda()
+            print(f"Moneda secundaria seleccionada: {moneda_secundaria.codigo_iso}")
+
+            tipos = self.servicio_tipo_cotizacion.leer_todos()
+            if not tipos:
+                print("No hay tipos de cotización registrados.")
+                return
+
+            print("\nTipos de cotización disponibles:")
+            for tipo in tipos:
+                print(f"{tipo.id}. {tipo.nombre}")
+
+            tipo_id = input_entero("ID de tipo de cotización: ")
+            tipo_cotizacion = self.servicio_tipo_cotizacion.leer_por_id(tipo_id)
+            if tipo_cotizacion is None:
+                print("No existe ese tipo de cotización.")
+                return
+
+            print(f"Tipo de cotización seleccionado: {tipo_cotizacion.nombre}")
+
+            moneda_ars = next(
+                (moneda for moneda in self.servicio_moneda.leer_todos()
+                 if moneda.codigo_iso == "ARS"),
+                None,
+            )
+            if moneda_ars is None:
+                print("La moneda ARS no está registrada.")
+                return
+
+            ultima_cotizacion = (
+                self.servicio_cotizacion.leer_ultima_por_tipo_y_monedas(
+                    tipo_cotizacion.id,
+                    moneda_secundaria.id,
+                    moneda_ars.id,
+                )
+            )
+            if ultima_cotizacion is None:
+                print("No hay cotizaciones para el tipo y las monedas seleccionadas.")
+                return
+
+            print(f"Fecha de la última cotización: {ultima_cotizacion.fecha}")
+            print(f"Cotización de venta en ARS: {ultima_cotizacion.venta:.2f}")
+
+            libros = self.servicio_catalogo.listar_todos()
+            if not libros:
+                print("No hay libros registrados.")
+                return
+
+            mostrar_separador()
+            print(
+                "ID", "ISBN", "Título", "Precio en ARS",
+                f"Precio en {moneda_secundaria.codigo_iso}",
+                sep=" | ",
+            )
+            mostrar_separador()
+
+            for libro in libros:
+                precio_ars = next(
+                    (precio for precio in libro.precios
+                     if precio.moneda.codigo_iso == "ARS"),
+                    None,
+                )
+
+                importe_ars = 0.0
+                importe_secundario = 0.0
+
+                if precio_ars is not None:
+                    importe_ars = precio_ars.precio_base
+                    importe_secundario = ServicioCotizador.convertir_precio(
+                        precio_ars,
+                        ultima_cotizacion,
+                    )
+
+                print(
+                    libro.id,
+                    libro.isbn,
+                    libro.titulo,
+                    f"{importe_ars:.2f}",
+                    f"{importe_secundario:.2f}",
+                    sep=" | ",
+                )
+        except (ValueError, TypeError, SQLAlchemyError) as error:
+            print(f"No se pudo generar el listado: {error}")
 
     def exportar_precios_csv(self):
-        """Informa que la exportación de precios está pendiente."""
-        print("Sección en construcción")
+        """Exporta una fila por precio registrado, incluyendo libros sin precio."""
+        print("\n--- EXPORTAR PRECIOS ---")
+
+        try:
+            libros = self.servicio_catalogo.listar_todos()
+            if not libros:
+                print("No hay libros registrados.")
+                return
+
+            archivo = Path(__file__).resolve().parents[3] / "lista_de_precios.csv"
+
+            print(f"\nExportando precios a {archivo}...")
+
+            with archivo.open("w", encoding="utf-8-sig", newline="") as salida:
+                escritor = csv.writer(salida)
+                escritor.writerow([
+                    "ID del Libro", "ISBN", "Titulo", "Moneda", "Precio",
+                ])
+
+                for libro in libros:
+                    precios = libro.precios
+                    if not precios:
+                        escritor.writerow([
+                            libro.id, libro.isbn, libro.titulo, "", "",
+                        ])
+                        continue
+
+                    for precio in precios:
+                        escritor.writerow([
+                            libro.id,
+                            libro.isbn,
+                            libro.titulo,
+                            precio.moneda.codigo_iso,
+                            f"{precio.precio_base:.2f}",
+                        ])
+
+            print(f"Archivo exportado: {archivo}")
+
+        except (ValueError, TypeError, SQLAlchemyError, OSError) as error:
+            print(f"No se pudo exportar el archivo CSV: {error}")
 
     def _pedir_libro(self):
         """Solicita el ID de un libro, valida su existencia y devuelve el objeto."""
