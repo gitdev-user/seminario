@@ -1,7 +1,9 @@
 import os
 import re
 import subprocess
+from collections.abc import Callable
 from datetime import date
+from decimal import Decimal
 
 
 def mostrar_separador():
@@ -15,7 +17,10 @@ def limpiar_pantalla():
     else:
         subprocess.run(["clear"])
 
-def mostrar_menu(titulo: str, opciones: dict[str, tuple[str, callable]]) -> str:
+def mostrar_menu(
+    titulo: str,
+    opciones: dict[str, tuple[str, Callable[[], None] | None]],
+) -> str:
     """Muestra las opciones de un menú y solicita una selección.
 
     Args:
@@ -53,7 +58,10 @@ def input_entero(prompt: str, valor_actual=None) -> int:
         except ValueError:
             print("Por favor, ingrese un número entero válido.")
 
-def input_decimal(prompt: str, valor_actual=None) -> float:
+def input_decimal(
+    prompt: str,
+    valor_actual: float | Decimal | None = None,
+) -> float | Decimal:
     """Solicita un número usando punto decimal y repite entradas no numéricas.
 
     Args:

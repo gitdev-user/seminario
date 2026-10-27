@@ -618,7 +618,7 @@ class Libro(EntidadBase):
         editorial: Editorial,
         genero: Genero,
         precios: list[Precio] | None = None,
-        stock: Stock = None
+        stock: Stock | None = None
     ):
         super().__init__()
         self.isbn = isbn
