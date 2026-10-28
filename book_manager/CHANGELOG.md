@@ -1,5 +1,12 @@
   # CHANGELOG
 
+  ## [Ejercicio 5]
+   ### Nuevo
+
+  - Se implementó `ServicioReporteExcel` para generar `reporte_precios_AAAA-MM-DD.xlsx` desde el CSV de alertas, con ISBN, título, precios interno y web, diferencia y fecha de extracción en formato DD-MM-YYYY. Incluye formato monetario, filtros y encabezados aun cuando no haya alertas.
+
+  ---
+
   ## [Ejercicio 4]
    ### Nuevo
 
