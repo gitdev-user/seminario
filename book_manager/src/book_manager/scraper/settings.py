@@ -7,6 +7,9 @@
 #     https://docs.scrapy.org/en/latest/topics/downloader-middleware.html
 #     https://docs.scrapy.org/en/latest/topics/spider-middleware.html
 
+from pathlib import Path
+
+
 BOT_NAME = "scraper"
 
 SPIDER_MODULES = ["scraper.spiders"]
@@ -23,7 +26,7 @@ ROBOTSTXT_OBEY = True
 
 # Concurrency and throttling settings
 #CONCURRENT_REQUESTS = 16
-CONCURRENT_REQUESTS_PER_DOMAIN = 1
+CONCURRENT_REQUESTS_PER_DOMAIN = 2
 DOWNLOAD_DELAY = 1
 
 # Disable cookies (enabled by default)
@@ -58,9 +61,9 @@ DOWNLOAD_DELAY = 1
 
 # Configure item pipelines
 # See https://docs.scrapy.org/en/latest/topics/item-pipeline.html
-#ITEM_PIPELINES = {
-#    "scraper.pipelines.ScraperPipeline": 300,
-#}
+ITEM_PIPELINES = {
+    "scraper.pipelines.CuspideValidacionPipeline": 300,
+}
 
 # Enable and configure the AutoThrottle extension (disabled by default)
 # See https://docs.scrapy.org/en/latest/topics/autothrottle.html
@@ -84,4 +87,29 @@ DOWNLOAD_DELAY = 1
 #HTTPCACHE_STORAGE = "scrapy.extensions.httpcache.FilesystemCacheStorage"
 
 # Set settings whose default value is deprecated to a future-proof value
-FEED_EXPORT_ENCODING = "utf-8"
+ARCHIVO_SCRAPING = (
+    Path(__file__).resolve().parents[1]
+    / "reportes"
+    / "libros_cuspide.json"
+)
+
+FEEDS = {
+    ARCHIVO_SCRAPING: {
+        "format": "json",
+        "encoding": "utf-8",
+        "indent": 4,
+        "overwrite": True,
+        "store_empty": True,
+        "fields": {
+            "isbn": "isbn",
+            "titulo_buscado": "titulo_interno",
+            "titulo_encontrado": "titulo_web",
+            "precio": "precio",
+            "formas_pago": "formas_pago",
+            "descripcion": "descripcion",
+            "url": "url",
+            "url_imagen": "url_imagen",
+        },
+    },
+}
+#FEED_EXPORT_ENCODING = "utf-8"

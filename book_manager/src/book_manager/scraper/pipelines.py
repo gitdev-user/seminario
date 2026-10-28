@@ -1,13 +1,31 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: https://docs.scrapy.org/en/latest/topics/item-pipeline.html
+"""Valida los libros extraídos antes de exportarlos a JSON."""
+
+from decimal import Decimal
+from scrapy.exceptions import DropItem
 
 
-# useful for handling different item types with a single interface
-from itemadapter import ItemAdapter
+class CuspideValidacionPipeline:
+    """Descarta libros con datos obligatorios ausentes o inválidos."""
 
-
-class ScraperPipeline:
     def process_item(self, item):
+        """Valida un ítem antes de continuar su procesamiento."""
+        if not item.get("titulo_encontrado"):
+            raise DropItem("El libro no tiene título.")
+
+        precio = item.get("precio")
+
+        if not isinstance(precio, Decimal):
+            raise DropItem("El precio debe ser Decimal.")
+
+        if not precio.is_finite() or precio <= 0:
+            raise DropItem("El precio debe ser finito y mayor que cero.")
+
+        url = item.get("url")
+
+        if not url:
+            raise DropItem("El libro no tiene URL.")
+
+        if not item.get("descripcion"):
+            item["descripcion"] = ""
+
         return item

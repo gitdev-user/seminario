@@ -1,13 +1,27 @@
-# Define here the models for your scraped items
-#
-# See documentation in:
-# https://docs.scrapy.org/en/latest/topics/items.html
+"""Define los campos de los libros extraídos del sitio de Cúspide."""
 
-from dataclasses import dataclass
+import scrapy
 
 
-@dataclass
-class ScraperItem:
-    # define the fields for your item here like:
-    # name: str | None = None
-    pass
+class CuspideLibroItem(scrapy.Item):
+    """Agrupa los datos de la ficha de un libro encontrado en Cúspide.
+
+    Attributes:
+        titulo_buscado: Título utilizado para buscar el libro.
+        titulo_encontrado: Título publicado en la ficha del libro.
+        isbn: ISBN publicado para identificar el libro.
+        precio: Precio publicado para el libro.
+        url_imagen: Dirección de la imagen del libro.
+        formas_pago: Información sobre los medios de pago disponibles.
+        descripcion: Descripción del libro publicada en su ficha.
+        url: Dirección de la página del libro.
+    """
+
+    titulo_buscado = scrapy.Field()
+    titulo_encontrado = scrapy.Field()
+    isbn = scrapy.Field()
+    precio = scrapy.Field()
+    url_imagen = scrapy.Field()
+    formas_pago = scrapy.Field()
+    descripcion = scrapy.Field()
+    url = scrapy.Field()
