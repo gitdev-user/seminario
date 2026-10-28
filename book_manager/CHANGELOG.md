@@ -1,8 +1,11 @@
   # CHANGELOG
-
+   
    ## [Ejercicio 3]
    ### Nuevo
    - Se implementó el scraping de Cúspide con búsqueda por título y coincidencia exacta entre títulos normalizados, extracción de datos mediante `CuspideLibroLoader`, validación con pipeline y ejecución mediante `ServicioScraping`, con configuración centralizada en `settings.py` y exportación a `reportes/libros_cuspide.json`
+
+   ### Modificación
+   - Se agregó la clase faltante de `ServicioScraping`.
 
    ---
    
