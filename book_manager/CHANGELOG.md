@@ -1,4 +1,11 @@
   # CHANGELOG
+
+  ## [Ejercicio 4]
+   ### Nuevo
+
+   - Se implementó `ServicioAlerta` para ejecutar el scraping, leer el JSON y comparar los precios web e internos en ARS de los libros encontrados, identificados por ISBN. El usuario ingresa un umbral porcentual entre 0 y 1 antes de cada ejecución. Si la diferencia absoluta supera ese umbral, se registra una alerta en `reportes/alertas_precios_AAAAMMDD.csv`, con ISBN, título, precios, diferencia monetaria, umbral y fecha de extracción. El archivo se genera con encabezados aunque no haya alertas.
+
+   ---
    
    ## [Ejercicio 3]
    ### Nuevo
