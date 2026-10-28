@@ -1,4 +1,11 @@
   # CHANGELOG
+   
+   ## [Ejercicio 2]
+   ### Verificación
+   - Se verificó que la carga de archivos SQL ya estaba implementada en `ProcesoPrecarga.importar_datos()` y conectada al flujo de inicio en `main.py` (Sprint 2)
+   - No fue necesario realizar cambios en el código.
+
+   ---
 
    ## [Ejercicio 1]
    ### Nuevo
