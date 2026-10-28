@@ -7,6 +7,9 @@
    ### Modificación
    - Se agregó la clase faltante de `ServicioScraping`.
 
+   ### Modificación
+   - Se agregó la clase faltante de `scraper/loaders.py`.
+
    ---
    
    ## [Ejercicio 2]
