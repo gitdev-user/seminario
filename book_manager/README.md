@@ -4,16 +4,12 @@ El objetivo principal de este proyecto es aplicar los conocimientos adquiridos e
 
 ## Introducción y Contexto del problema
 
-### Sprint 2
+### Sprint 3
 
-**Desarrollar el sprint 2**
+**Desarrollar el sprint 3**
 
-En esta segunda entrega vamos a ampliar el alcance haciendo que nuestra aplicación persista en una base de datos relacional. Para este caso vamos a utilizar el ORM [SQLAlchemy](https://colab.research.google.com/drive/1SKsOF5rdQ-Ul4PnMloZsCsNRO2nWH4KZ).
+En esta tercer entrega vamos a descargar y obtener datos de la web para trabajar con ellos.
 
-La idea principal es realizar una migración de todos los datos cargados en los archivos a tablas relacionales.
+La idea es obtener precios de nuestros competidores (librerías con venta online) y de esta forma poder compararnos con ellos y competir de forma más informada.
 
-El objetivo principal es consolidar las bases de manejo de bases de datos, normalización, conexión segura y carga inicial.
-
-Además realizaremos consultas a APIs externas.
-
-Para todo esto debemos partir del último push que se realizó en la entrega 1.
+Para todo esto debemos partir del último push que se realizó en la entrega 2.
