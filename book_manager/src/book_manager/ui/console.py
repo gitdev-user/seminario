@@ -333,7 +333,7 @@ class ControladorInventario:
                 cantidad_minima=input_entero("Cantidad mínima: "),
                 cantidad_total=input_entero("Cantidad total: "),
             )
-            self.servicio.guardar_stock(stock)
+            self.servicio.crear_stock(stock)
             print("Stock creado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear el stock: {error}")
@@ -358,7 +358,7 @@ class ControladorInventario:
             )
             actual.cantidad_minima = minima
             actual.cantidad_total = total
-            self.servicio.guardar_stock(actual)
+            self.servicio.actualizar_stock(actual)
             print("Stock modificado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo modificar el stock: {error}")
@@ -407,7 +407,7 @@ class ControladorInventario:
                 moneda=self._pedir_moneda(),
                 precio_base=input_decimal("Precio base: "),
             )
-            self.servicio.guardar_precio(precio)
+            self.servicio.crear_precio(precio)
             print("Precio creado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear el precio: {error}")
@@ -427,7 +427,7 @@ class ControladorInventario:
             )
            
             actual.precio_base = precio_base
-            self.servicio.guardar_precio(actual)
+            self.servicio.actualizar_precio(actual)
             print("Precio modificado correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo modificar el precio: {error}")
@@ -571,7 +571,7 @@ class ControladorCatalogo:
                 editorial=editorial,
                 genero=genero,
             )
-            creado = self.servicio.guardar(libro)
+            creado = self.servicio.crear(libro)
             print(f"Libro creado correctamente. ID: {creado.id}")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear el libro: {error}")
@@ -638,7 +638,7 @@ class ControladorCatalogo:
             actual.editorial = editorial
             actual.genero = genero
 
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Libro modificado correctamente.")
 
         except (ValueError, TypeError) as error:
@@ -794,7 +794,7 @@ class ControladorCotizacion:
                 venta=input_decimal("Venta (use punto para decimales): "),
                 fecha=fecha,
             )
-            self.servicio.guardar(cotizacion)
+            self.servicio.crear(cotizacion)
             print("Cotización creada correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo crear la cotización: {error}")
@@ -833,7 +833,7 @@ class ControladorCotizacion:
                 f"Venta [{actual.venta}] (Enter para conservar): ",
                 valor_actual=actual.venta,
             )
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Cotización modificada correctamente.")
         except (ValueError, TypeError) as error:
             print(f"No se pudo modificar la cotización: {error}")
@@ -956,7 +956,7 @@ class ControladorTipoCotizacion:
                 nombre=input("Nombre: ").strip(),
                 descripcion=input("Descripción: ").strip(),
             )
-            creado = self.servicio.guardar(tipo)
+            creado = self.servicio.crear(tipo)
             print(f"Tipo de cotización creado correctamente. ID: {creado.id}")
         except ValueError as error:
             print(f"No se pudo crear el tipo de cotización: {error}")
@@ -981,7 +981,7 @@ class ControladorTipoCotizacion:
                 f"Descripción [{actual.descripcion}]: "
             ).strip() or actual.descripcion
 
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Tipo de cotización modificado correctamente.")
         except ValueError as error:
             print(f"No se pudo modificar el tipo de cotización: {error}")
@@ -1073,7 +1073,7 @@ class ControladorMoneda:
                 nombre=input("Nombre: ").strip(),
                 simbolo=input("Símbolo: ").strip(),
             )
-            creada = self.servicio.guardar(moneda)
+            creada = self.servicio.crear(moneda)
             print(f"Moneda creada correctamente. ID: {creada.id}")
         except ValueError as error:
             print(f"No se pudo crear la moneda: {error}")
@@ -1100,7 +1100,7 @@ class ControladorMoneda:
                 f"Símbolo [{actual.simbolo}]: "
             ).strip() or actual.simbolo
 
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Moneda modificada correctamente.")
         except ValueError as error:
             print(f"No se pudo modificar la moneda: {error}")
@@ -1185,7 +1185,7 @@ class ControladorGenero:
                 nombre=input("Nombre: ").strip(),
                 descripcion=input("Descripción: ").strip(),
             )
-            creado = self.servicio.guardar(genero)
+            creado = self.servicio.crear(genero)
             print(f"Género creado correctamente. ID: {creado.id}")
         except ValueError as error:
             print(f"No se pudo crear el género: {error}")
@@ -1211,7 +1211,7 @@ class ControladorGenero:
                 f"Descripción [{actual.descripcion}]: "
             ).strip() or actual.descripcion
 
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Género modificado correctamente.")
         except ValueError as error:
             print(f"No se pudo modificar el género: {error}")
@@ -1318,7 +1318,7 @@ class ControladorEditorial:
                 email=input("Email: ").strip(),
             )
 
-            creada = self.servicio.guardar(editorial)
+            creada = self.servicio.crear(editorial)
 
             print(f"Editorial creada correctamente. ID: {creada.id}")
 
@@ -1353,7 +1353,7 @@ class ControladorEditorial:
             actual.email = input(
                 f"Email [{actual.email}]: ").strip() or actual.email
 
-            self.servicio.guardar(actual)
+            self.servicio.actualizar(actual)
             print("Editorial modificada correctamente.")
 
         except ValueError as error:

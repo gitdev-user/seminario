@@ -39,8 +39,32 @@ class ServicioInventario:
         self.repositorio_stock = repositorio_stock
         self.repositorio_moneda = repositorio_moneda
 
-    def guardar_precio(self, precio: Precio) -> Precio:
-        """Valida las referencias y crea o actualiza el precio."""
+    def crear_precio(self, precio: Precio) -> Precio:
+        """Crea un precio y rechaza una combinación de libro y moneda existente."""
+        libro = self.repositorio_libro.leer_por_id(precio.libro_id)
+        if libro is None:
+            raise ValueError(f"No existe un libro con ID {precio.libro_id}.")
+
+        moneda = self.repositorio_moneda.leer_por_id(precio.moneda.id)
+        if moneda is None:
+            raise ValueError(f"No existe una moneda con ID {precio.moneda.id}.")
+
+        precio.moneda = moneda
+
+        existente = self.repositorio_precio.leer_por_libro_y_moneda(
+            precio.libro_id, precio.moneda.id
+        )
+
+        if existente is not None:
+            raise ValueError(
+                f"Ya existe un precio para el libro {precio.libro_id} "
+                f"en {precio.moneda.codigo_iso}."
+            )
+
+        return self.repositorio_precio.crear(precio)
+
+    def actualizar_precio(self, precio: Precio) -> Precio:
+        """Actualiza un precio existente para el libro y la moneda."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {precio.libro_id}.")
@@ -56,22 +80,42 @@ class ServicioInventario:
         )
 
         if existente is None:
-            return self.repositorio_precio.crear(precio)
+            raise ValueError(
+                f"No existe un precio para el libro {precio.libro_id} "
+                f"en {precio.moneda.codigo_iso}."
+            )
 
         return self.repositorio_precio.actualizar(precio)
 
-    def guardar_stock(self, stock: Stock) -> Stock:
-        """Valida el libro y guarda el stock identificado por libro_id."""
+    def crear_stock(self, stock: Stock) -> Stock:
+        """Crea el stock de un libro que todavía no tiene uno registrado."""
         libro = self.repositorio_libro.leer_por_id(stock.libro_id)
         if libro is None:
             raise ValueError(f"No existe un libro con ID {stock.libro_id}.")
 
-        if self.repositorio_stock.leer_por_libro(stock.libro_id) is None:
-            guardado = self.repositorio_stock.crear(stock)
-        else:
-            guardado = self.repositorio_stock.actualizar(stock)
+        existente = self.repositorio_stock.leer_por_libro(stock.libro_id)
 
-        return guardado
+        if existente is not None:
+            raise ValueError(
+                f"Ya existe un registro de stock para el libro {stock.libro_id}."
+            )
+
+        return self.repositorio_stock.crear(stock)
+
+    def actualizar_stock(self, stock: Stock) -> Stock:
+        """Actualiza el stock existente de un libro."""
+        libro = self.repositorio_libro.leer_por_id(stock.libro_id)
+        if libro is None:
+            raise ValueError(f"No existe un libro con ID {stock.libro_id}.")
+
+        existente = self.repositorio_stock.leer_por_libro(stock.libro_id)
+
+        if existente is None:
+            raise ValueError(
+                f"No existe un registro de stock para el libro {stock.libro_id}."
+            )
+
+        return self.repositorio_stock.actualizar(stock)
 
     def leer_precios_por_libro(self, libro_id: int) -> List[Precio]:
         """Devuelve los precios del libro, o una lista vacía."""
@@ -188,7 +232,19 @@ class ServicioCotizacion:
                     fecha=fecha,
                 )
 
-                cotizaciones.append(self.guardar(cotizacion))
+                existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
+                    cotizacion.tipo_cotizacion.id,
+                    cotizacion.moneda_origen.id,
+                    cotizacion.moneda_destino.id,
+                    cotizacion.fecha,
+                )
+
+                if existente is None:
+                    guardada = self.crear(cotizacion)
+                else:
+                    guardada = self.actualizar(cotizacion)
+
+                cotizaciones.append(guardada)
 
             except Exception as error:
                 print(f"No se pudo importar la cotización {indice}: {error}")
@@ -196,8 +252,24 @@ class ServicioCotizacion:
 
         return cotizaciones
 
-    def guardar(self, cotizacion: Cotizacion) -> Cotizacion:
-        """Crea la cotización o actualiza compra y venta si ya existe su clave."""
+    def crear(self, cotizacion: Cotizacion) -> Cotizacion:
+        """Crea una cotización y rechaza una combinación existente."""
+        existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
+            cotizacion.tipo_cotizacion.id,
+            cotizacion.moneda_origen.id,
+            cotizacion.moneda_destino.id,
+            cotizacion.fecha,
+        )
+
+        if existente is not None:
+            raise ValueError(
+                "Ya existe una cotización para ese tipo, monedas y fecha."
+            )
+
+        return self.repositorio.crear(cotizacion)
+
+    def actualizar(self, cotizacion: Cotizacion) -> Cotizacion:
+        """Actualiza compra y venta de una cotización existente."""
         existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
             cotizacion.tipo_cotizacion.id,
             cotizacion.moneda_origen.id,
@@ -206,7 +278,9 @@ class ServicioCotizacion:
         )
 
         if existente is None:
-            return self.repositorio.crear(cotizacion)
+            raise ValueError(
+                "No existe una cotización para ese tipo, monedas y fecha."
+            )
 
         return self.repositorio.actualizar(cotizacion)
 
@@ -309,18 +383,14 @@ class ServicioCatalogo:
         self.repositorio_precio = repositorio_precio
         self.repositorio_stock = repositorio_stock
 
-    def guardar(self, libro: Libro) -> Libro:
-        """Valida editorial, género e ISBN único antes de crear o actualizar.
+    def crear(self, libro: Libro) -> Libro:
+        """Crea un libro sin ID y evita ISBN duplicados."""
+        if libro.id is not None:
+            raise ValueError("Un libro nuevo no debe tener un ID asignado.")
 
-        Raises:
-            ValueError: Si la editorial o el género no existen, o si otro
-                libro tiene el mismo ISBN.
-        """
-
-        libro_id = getattr(libro, "id", None)
         existente = self.repositorio.leer_por_isbn(libro.isbn)
 
-        if existente is not None and existente.id != libro_id:
+        if existente is not None:
             raise ValueError(
                 f"Ya existe un libro con ISBN '{libro.isbn}'."
             )
@@ -335,8 +405,34 @@ class ServicioCatalogo:
                 f"No existe un género asignado con ID {libro.genero.id}."
             )
 
-        if libro_id is None or self.repositorio.leer_por_id(libro_id) is None:
-            return self.repositorio.crear(libro)
+        return self.repositorio.crear(libro)
+
+    def actualizar(self, libro: Libro) -> Libro:
+        """Actualiza un libro existente y evita ISBN duplicados."""
+        if libro.id is None:
+            raise ValueError("El libro debe tener un ID para actualizar.")
+
+        if self.repositorio.leer_por_id(libro.id) is None:
+            raise ValueError(
+                f"No existe un libro con ID {libro.id}."
+            )
+
+        existente = self.repositorio.leer_por_isbn(libro.isbn)
+
+        if existente is not None and existente.id != libro.id:
+            raise ValueError(
+                f"Ya existe un libro con ISBN '{libro.isbn}'."
+            )
+
+        if self.repositorio_editorial.leer_por_id(libro.editorial.id) is None:
+            raise ValueError(
+                f"No existe una editorial asignada con ID {libro.editorial.id}."
+            )
+
+        if self.repositorio_genero.leer_por_id(libro.genero.id) is None:
+            raise ValueError(
+                f"No existe un género asignado con ID {libro.genero.id}."
+            )
 
         return self.repositorio.actualizar(libro)
 
@@ -368,17 +464,36 @@ class ServicioEditorial:
         self.repositorio = repositorio
         self.repositorio_libro = repositorio_libro
 
-    def guardar(self, editorial: Editorial) -> Editorial:
-        """Crea o actualiza la editorial, evitando nombres duplicados."""
+    def crear(self, editorial: Editorial) -> Editorial:
+        """Crea una editorial sin ID y evita nombres duplicados."""
+        if editorial.id is not None:
+            raise ValueError("Una editorial nueva no debe tener un ID asignado.")
+
+        existente = self.repositorio.leer_por_nombre(editorial.nombre)
+
+        if existente is not None:
+            raise ValueError(
+                f"Ya existe una editorial con nombre '{editorial.nombre}'."
+            )
+
+        return self.repositorio.crear(editorial)
+
+    def actualizar(self, editorial: Editorial) -> Editorial:
+        """Actualiza una editorial existente y evita nombres duplicados."""
+        if editorial.id is None:
+            raise ValueError("La editorial debe tener un ID para actualizar.")
+
+        if self.repositorio.leer_por_id(editorial.id) is None:
+            raise ValueError(
+                f"No existe una editorial con ID {editorial.id}."
+            )
+
         existente = self.repositorio.leer_por_nombre(editorial.nombre)
 
         if existente is not None and existente.id != editorial.id:
             raise ValueError(
                 f"Ya existe una editorial con nombre '{editorial.nombre}'."
             )
-
-        if editorial.id is None or self.repositorio.leer_por_id(editorial.id) is None:
-            return self.repositorio.crear(editorial)
 
         return self.repositorio.actualizar(editorial)
 
@@ -414,17 +529,36 @@ class ServicioGenero:
         self.repositorio = repositorio
         self.repositorio_libro = repositorio_libro
 
-    def guardar(self, genero: Genero) -> Genero:
-        """Crea o actualiza el género, evitando nombres duplicados."""
+    def crear(self, genero: Genero) -> Genero:
+        """Crea un género sin ID y evita nombres duplicados."""
+        if genero.id is not None:
+            raise ValueError("Un género nuevo no debe tener un ID asignado.")
+
+        existente = self.repositorio.leer_por_nombre(genero.nombre)
+
+        if existente is not None:
+            raise ValueError(
+                f"Ya existe un género con nombre '{genero.nombre}'."
+            )
+
+        return self.repositorio.crear(genero)
+
+    def actualizar(self, genero: Genero) -> Genero:
+        """Actualiza un género existente y evita nombres duplicados."""
+        if genero.id is None:
+            raise ValueError("El género debe tener un ID para actualizar.")
+
+        if self.repositorio.leer_por_id(genero.id) is None:
+            raise ValueError(
+                f"No existe un género con ID {genero.id}."
+            )
+
         existente = self.repositorio.leer_por_nombre(genero.nombre)
 
         if existente is not None and existente.id != genero.id:
             raise ValueError(
                 f"Ya existe un género con nombre '{genero.nombre}'."
             )
-
-        if genero.id is None or self.repositorio.leer_por_id(genero.id) is None:
-            return self.repositorio.crear(genero)
 
         return self.repositorio.actualizar(genero)
 
@@ -460,30 +594,45 @@ class ServicioTipoCotizacion:
         self.repositorio = repositorio
         self.repositorio_cotizacion = repositorio_cotizacion
 
-    def guardar(self, tipo_cotizacion: TipoCotizacion) -> TipoCotizacion:
-        """Crea o actualiza un tipo de cotización, evitando nombres duplicados."""
+    def crear(self, tipo_cotizacion: TipoCotizacion) -> TipoCotizacion:
+        """Crea un tipo de cotización sin ID y evita nombres duplicados."""
+        if tipo_cotizacion.id is not None:
+            raise ValueError(
+                "Un tipo de cotización nuevo no debe tener un ID asignado."
+            )
 
-        # Buscar si existe otro registro con el mismo nombre
-        existente_nombre = self.repositorio.leer_por_nombre(
+        existente = self.repositorio.leer_por_nombre(
             tipo_cotizacion.nombre
         )
 
-        if (
-            existente_nombre is not None
-            and existente_nombre.id != tipo_cotizacion.id
-        ):
+        if existente is not None:
             raise ValueError(
                 f"Ya existe un tipo de cotización con nombre '{tipo_cotizacion.nombre}'."
             )
 
-        # Crear si no tiene ID o no existe
-        if (
-            tipo_cotizacion.id is None
-            or self.repositorio.leer_por_id(tipo_cotizacion.id) is None
-        ):
-            return self.repositorio.crear(tipo_cotizacion)
+        return self.repositorio.crear(tipo_cotizacion)
 
-        # Actualizar si existe
+    def actualizar(self, tipo_cotizacion: TipoCotizacion) -> TipoCotizacion:
+        """Actualiza un tipo de cotización existente y evita nombres duplicados."""
+        if tipo_cotizacion.id is None:
+            raise ValueError(
+                "El tipo de cotización debe tener un ID para actualizar."
+            )
+
+        if self.repositorio.leer_por_id(tipo_cotizacion.id) is None:
+            raise ValueError(
+                f"No existe un tipo de cotización con ID {tipo_cotizacion.id}."
+            )
+
+        existente = self.repositorio.leer_por_nombre(
+            tipo_cotizacion.nombre
+        )
+
+        if existente is not None and existente.id != tipo_cotizacion.id:
+            raise ValueError(
+                f"Ya existe un tipo de cotización con nombre '{tipo_cotizacion.nombre}'."
+            )
+
         return self.repositorio.actualizar(tipo_cotizacion)
 
     def leer_por_id(self, id: int) -> Optional[TipoCotizacion]:
@@ -517,8 +666,30 @@ class ServicoMoneda:
         self.repositorio_cotizacion = repositorio_cotizacion
         self.repositorio_precio = repositorio_precio
 
-    def guardar(self, moneda: Moneda) -> Moneda:
-        """Crea o actualiza la moneda, evitando códigos ISO duplicados."""
+    def crear(self, moneda: Moneda) -> Moneda:
+        """Crea una moneda sin ID y evita códigos ISO duplicados."""
+        if moneda.id is not None:
+            raise ValueError("Una moneda nueva no debe tener un ID asignado.")
+
+        existente = self.repositorio.leer_por_codigo_iso(moneda.codigo_iso)
+
+        if existente is not None:
+            raise ValueError(
+                f"Ya existe una moneda con código ISO '{moneda.codigo_iso}'."
+            )
+
+        return self.repositorio.crear(moneda)
+
+    def actualizar(self, moneda: Moneda) -> Moneda:
+        """Actualiza una moneda existente y evita códigos ISO duplicados."""
+        if moneda.id is None:
+            raise ValueError("La moneda debe tener un ID para actualizar.")
+
+        if self.repositorio.leer_por_id(moneda.id) is None:
+            raise ValueError(
+                f"No existe una moneda con ID {moneda.id}."
+            )
+
         existente = self.repositorio.leer_por_codigo_iso(moneda.codigo_iso)
 
         if existente is not None and existente.id != moneda.id:
@@ -526,9 +697,6 @@ class ServicoMoneda:
                 f"Ya existe una moneda con código ISO '{moneda.codigo_iso}'."
             )
 
-        if (moneda.id is None or self.repositorio.leer_por_id(moneda.id) is None):
-            return self.repositorio.crear(moneda)
-        
         return self.repositorio.actualizar(moneda)
 
     def leer_por_id(self, id: int) -> Optional[Moneda]:
