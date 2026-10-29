@@ -17,6 +17,11 @@ class ServicioAlerta:
     def __init__(self, libros: list[Libro]):
         """Recibe los libros internos con sus precios por moneda."""
         self.libros = libros
+        self._cantidad_alertas = 0
+
+    def obtener_cantidad_alertas(self) -> int:
+        """Devuelve la cantidad de alertas de la última ejecución."""
+        return self._cantidad_alertas
 
     def ejecutar(self, umbral: Decimal) -> None:
         """Ejecuta el scraping y escribe las alertas de precios.
@@ -26,6 +31,8 @@ class ServicioAlerta:
         Solo se comparan los ISBN presentes en el JSON y con precio interno
         válido en ARS. El CSV se crea aun cuando no existan alertas.
         """
+        self._cantidad_alertas = 0
+
         if not umbral.is_finite() or not Decimal("0") <= umbral <= Decimal("1"):
             raise ValueError("El umbral debe estar entre 0 y 1.")
 
@@ -96,3 +103,4 @@ class ServicioAlerta:
                         f"{umbral * 100:.2f}%",
                         fecha.isoformat(),
                     ])
+                    self._cantidad_alertas += 1

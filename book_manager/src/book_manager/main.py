@@ -137,6 +137,7 @@ def main(import_default_data: bool = False) -> None:
             servicio_cotizacion=servicio_cotizacion,
             servicio_catalogo=servicio_catalogo,
             servicio_inventario=servicio_inventario,
+            servicio_auditoria=servicio_auditoria,
         )
         consola.ejecutar()
     finally:

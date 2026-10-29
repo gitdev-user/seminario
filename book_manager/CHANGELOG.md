@@ -1,5 +1,12 @@
   # CHANGELOG
 
+ ## [Ejercicio 7]
+ ### Nuevo
+ - Se agregó `ControladorReporte` al menú principal con opciones para ejecutar scraping, generar reportes Excel desde un CSV de alertas seleccionado y consultar las últimas 30 auditorías, ordenadas de más reciente a más antigua. 
+ - Se adaptó el scraping para ejecutarse en un proceso independiente y permitir ejecuciones repetidas. También se incorporó un contador en `ServicioAlerta` para mostrar la cantidad de alertas generadas al finalizar.
+
+ ---
+
  ## [Ejercicio 6]
    ### Nuevo
   - Se incorporó la auditoría de los métodos públicos de los servicios mediante `@ServicioAuditoria.auditar`, registrando en la base de datos la acción, fecha y resultado de cada operación. 

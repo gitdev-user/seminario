@@ -63,9 +63,6 @@ class CuspideSpider(scrapy.Spider):
 
         for url, titulo in candidatos.items():
             if self._normalizar(titulo) == buscado:
-                print(f"\nBuscado: {libro.titulo}")
-                print(f"Seleccionado: {titulo}")
-                print("Coincidencia exacta entre títulos normalizados.")
 
                 yield response.follow(
                     url,

@@ -1,9 +1,13 @@
 import csv
 from datetime import date
+from decimal import Decimal, InvalidOperation
 from pathlib import Path
 
 from sqlalchemy.exc import SQLAlchemyError
 
+from scraper.settings import ARCHIVO_SCRAPING
+from services.service_alerta import ServicioAlerta
+from services.service_reporte_excel import ServicioReporteExcel
 from ui.console_helper import (
     limpiar_pantalla, 
     mostrar_menu,
@@ -24,6 +28,7 @@ from entities.entities import (
     Precio,
 )
 from services.services import (
+    ServicioAuditoria,
     ServicioEditorial,
     ServicioGenero,
     ServicoMoneda,
@@ -45,6 +50,7 @@ class ConsolaGeneral:
                  servicio_cotizacion: ServicioCotizacion,
                  servicio_catalogo: ServicioCatalogo,
                  servicio_inventario: ServicioInventario,
+                 servicio_auditoria: ServicioAuditoria,
         ):
         self.servicio_editorial = servicio_editorial
         self.servicio_genero = servicio_genero
@@ -66,6 +72,7 @@ class ConsolaGeneral:
             "7": ControladorCotizacion(
                 servicio_cotizacion, servicio_moneda, servicio_tipo_cotizacion
             ),
+            "8": ControladorReporte(servicio_catalogo, servicio_auditoria),
         }
 
     def ejecutar(self):
@@ -83,10 +90,11 @@ class ConsolaGeneral:
             print("5. Gestionar Catálogo")
             print("6. Gestionar Inventario")
             print("7. Gestionar Cotizaciones")
-            print("8. Salir del Sistema")
+            print("8. Gestionar Reportes")
+            print("9. Salir del Sistema")
             mostrar_separador()
             
-            opcion = input("Seleccione una opción (1-8): ").strip()
+            opcion = input("Seleccione una opción (1-9): ").strip()
             limpiar_pantalla()
 
             match opcion:
@@ -105,11 +113,122 @@ class ConsolaGeneral:
                 case "7":
                     self.controladores[opcion].ejecutar()
                 case "8":
+                    self.controladores[opcion].ejecutar()
+                case "9":
                     print("¡Gracias por usar el sistema!")
                     return
                 case _:
                     print("Opción inválida.")
                     input("\nPresione Enter para continuar...")
+
+class ControladorReporte:
+    """Gestiona scraping, reportes y consultas de auditoría."""
+
+    def __init__(
+        self,
+        servicio_catalogo: ServicioCatalogo,
+        servicio_auditoria: ServicioAuditoria,
+    ):
+        self.servicio_catalogo = servicio_catalogo
+        self.servicio_auditoria = servicio_auditoria
+        self.carpeta_reportes = Path(ARCHIVO_SCRAPING).parent
+
+    def ejecutar(self):
+        """Muestra el menú de reportes."""
+        opciones = {
+            "1": ("Ejecutar scraping", self.ejecutar_scraping),
+            "2": ("Generar reporte", self.generar_reporte),
+            "3": ("Ver historial de auditoría", self.ver_historial_auditoria),
+            "4": ("Volver atrás", None),
+        }
+
+        while True:
+            limpiar_pantalla()
+            opcion = mostrar_menu("GESTIÓN DE REPORTES", opciones)
+
+            if opcion not in opciones:
+                print("Opción inválida.")
+            else:
+                _, accion = opciones[opcion]
+                if accion is None:
+                    return
+
+                try:
+                    accion()
+                except (
+                    ValueError,
+                    InvalidOperation,
+                    OSError,
+                    SQLAlchemyError,
+                    RuntimeError,
+                ) as error:
+                    print(f"No se pudo completar la operación: {error}")
+
+            input("\nPresione Enter para continuar...")
+
+    def ejecutar_scraping(self):
+        """Solicita el umbral y genera los resultados y las alertas."""
+        umbral = Decimal(
+            input("Umbral entre 0 y 1 (0.10 = 10 %): ")
+            .strip()
+            .replace(",", ".")
+        )
+        if not umbral.is_finite() or not Decimal("0") <= umbral <= Decimal("1"):
+            raise ValueError("El umbral debe estar entre 0 y 1.")
+
+        libros = self.servicio_catalogo.listar_todos()
+        if not libros:
+            print("No hay libros registrados.")
+            return
+
+        servicio = ServicioAlerta(libros)
+        servicio.ejecutar(umbral)
+        print(f"Archivos generados en: {self.carpeta_reportes}")
+        print(f"Cantidad de alertas: {servicio.obtener_cantidad_alertas()}")
+
+    def generar_reporte(self):
+        """Permite elegir un CSV de alertas y generar su reporte Excel."""
+        archivos = sorted(
+            self.carpeta_reportes.glob("alertas_precios_*.csv"),
+            reverse=True,
+        )
+        if not archivos:
+            print("No hay archivos de alertas disponibles.")
+            return
+
+        for numero, archivo in enumerate(archivos, start=1):
+            print(f"{numero}. {archivo.name}")
+
+        seleccion = input_entero("Seleccione el archivo: ")
+        if not 1 <= seleccion <= len(archivos):
+            raise ValueError("La selección no es válida.")
+
+        ServicioReporteExcel(archivos[seleccion - 1]).ejecutar()
+        print(f"Reporte Excel generado en: {self.carpeta_reportes}")
+
+    def ver_historial_auditoria(self):
+        """Muestra las últimas 30 auditorías, desde la más reciente."""
+        registros = self.servicio_auditoria.leer_todos()
+        ultimos = sorted(
+            registros,
+            key=lambda registro: (registro.fecha, registro.id or 0),
+            reverse=True,
+        )[:30]
+        if not ultimos:
+            print("No hay registros de auditoría.")
+            return
+
+        mostrar_separador()
+        print("Acción", "Fecha", "Detalles", sep=" | ")
+        mostrar_separador()
+        for registro in ultimos:
+            print(
+                registro.accion,
+                registro.fecha.strftime("%d-%m-%Y %H::%M:%S"),
+                registro.detalles,
+                sep=" | ",
+            )
+
 
 class ControladorInventario:
     """Gestiona por consola el alta, modificación, baja y búsqueda de stock y precios por libro."""
