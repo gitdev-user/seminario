@@ -841,3 +841,53 @@ class Libro(EntidadBase):
             )
 
         self._stock = valor
+
+class Auditoria(EntidadBase):
+    """Registra una acción del sistema, sus detalles y su fecha."""
+
+    def __init__(
+        self,
+        accion: str,
+        detalles: str,
+        fecha: datetime,
+    ):
+        super().__init__()
+        self.accion = accion
+        self.detalles = detalles
+        self.fecha = fecha
+
+    @property
+    def accion(self) -> str:
+        return self._accion
+
+    @accion.setter
+    def accion(self, valor: str):
+        if not isinstance(valor, str):
+            raise TypeError("La acción debe ser una cadena de texto.")
+
+        if not valor.strip():
+            raise ValueError("La acción no puede estar vacía.")
+
+        self._accion = valor.strip()
+
+    @property
+    def detalles(self) -> str:
+        return self._detalles
+
+    @detalles.setter
+    def detalles(self, valor: str):
+        if not isinstance(valor, str):
+            raise TypeError("Los detalles deben ser una cadena de texto.")
+
+        self._detalles = valor
+
+    @property
+    def fecha(self) -> datetime:
+        return self._fecha
+
+    @fecha.setter
+    def fecha(self, valor: datetime):
+        if not isinstance(valor, datetime):
+            raise TypeError("La fecha debe ser una instancia de datetime.")
+
+        self._fecha = valor

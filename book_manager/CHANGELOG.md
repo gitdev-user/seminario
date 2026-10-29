@@ -1,5 +1,13 @@
   # CHANGELOG
 
+ ## [Ejercicio 6]
+   ### Nuevo
+  - Se incorporó la auditoría de los métodos públicos de los servicios mediante `@ServicioAuditoria.auditar`, registrando en la base de datos la acción, fecha y resultado de cada operación. 
+  
+  - Se actualizó `main.py`S para inyectar una instancia compartida de `ServicioAuditoria`
+ 
+ ---
+
   ## [Ejercicio 5]
    ### Nuevo
 

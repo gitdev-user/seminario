@@ -15,6 +15,7 @@ from migrations.migrations import ProcesoMigracion
 from preload_data.preload_data import ProcesoPrecarga
 from ui.console import ConsolaGeneral
 from repositories.repositories import (
+    RepositorioAuditoria,
     RepositorioTipoCotizacion,
     RepositorioMoneda,
     RepositorioEditorial,
@@ -25,6 +26,7 @@ from repositories.repositories import (
     RepositorioStock,
 )
 from services.services import (
+    ServicioAuditoria,
     ServicioTipoCotizacion,
     ServicoMoneda,
     ServicioEditorial,
@@ -70,28 +72,35 @@ def main(import_default_data: bool = False) -> None:
         repositorio_libros = RepositorioLibro(contexto)
         repositorio_precios = RepositorioPrecio(contexto)
         repositorio_stock = RepositorioStock(contexto)
+        repositorio_auditoria = RepositorioAuditoria(contexto)
+        servicio_auditoria = ServicioAuditoria(repositorio_auditoria)
 
         servicio_tipo_cotizacion = ServicioTipoCotizacion(
             repositorio=repositorio_tipos,
             repositorio_cotizacion=repositorio_cotizaciones,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_moneda = ServicoMoneda(
             repositorio=repositorio_monedas,
             repositorio_cotizacion=repositorio_cotizaciones,
             repositorio_precio=repositorio_precios,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_editorial = ServicioEditorial(
             repositorio=repositorio_editoriales,
             repositorio_libro=repositorio_libros,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_genero = ServicioGenero(
             repositorio=repositorio_generos,
             repositorio_libro=repositorio_libros,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_cotizacion = ServicioCotizacion(
             repositorio=repositorio_cotizaciones,
             repositorio_moneda=repositorio_monedas,
             repositorio_tipo_cotizacion=repositorio_tipos,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_catalogo = ServicioCatalogo(
             repositorio=repositorio_libros,
@@ -99,12 +108,14 @@ def main(import_default_data: bool = False) -> None:
             repositorio_genero=repositorio_generos,
             repositorio_precio=repositorio_precios,
             repositorio_stock=repositorio_stock,
+            servicio_auditoria=servicio_auditoria,
         )
         servicio_inventario = ServicioInventario(
             repositorio_libro=repositorio_libros,
             repositorio_precio=repositorio_precios,
             repositorio_stock=repositorio_stock,
             repositorio_moneda=repositorio_monedas,
+            servicio_auditoria=servicio_auditoria,
         )
 
         if import_default_data:
@@ -133,4 +144,4 @@ def main(import_default_data: bool = False) -> None:
 
 
 if __name__ == "__main__":
-    main(True)
+    main(False)

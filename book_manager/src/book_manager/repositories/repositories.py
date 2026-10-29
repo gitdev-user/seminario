@@ -9,10 +9,15 @@ from sqlalchemy import func, select
 from sqlalchemy.orm import Session
 
 from database.connection import ContextManager
-from entities.entities import Cotizacion, Editorial, EntidadBase, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
+from entities.entities import (
+    Cotizacion, Editorial, EntidadBase, Genero, Libro, 
+    Moneda, Precio, Stock, TipoCotizacion, Auditoria,
+)
+
 from models.models import (
     EditorialModel, GeneroModel, LibroModel, MonedaModel,
     PrecioModel, StockModel, TipoCotizacionModel, CotizacionModel,
+    AuditoriaModel,
 )
 
 T = TypeVar('T', bound=EntidadBase)
@@ -1171,3 +1176,67 @@ class RepositorioCotizacion(IRepositorioCotizacion):
                 .limit(1)
             )
             return session.scalar(consulta) is not None
+
+class IRepositorioAuditoria(abc.ABC):
+    """Define las operaciones de persistencia de auditorías."""
+
+    @abc.abstractmethod
+    def crear(self, auditoria: Auditoria) -> Auditoria:
+        """Guarda una nueva auditoría."""
+        pass
+
+    @abc.abstractmethod
+    def leer_todos(self) -> list[Auditoria]:
+        """Obtiene todas las auditorías."""
+        pass
+
+
+class RepositorioAuditoria(IRepositorioAuditoria):
+    """Persiste y consulta auditorías mediante SQLAlchemy."""
+
+    def __init__(self, contexto: ContextManager):
+        """Recibe el administrador de transacciones."""
+        self.contexto = contexto
+
+    @staticmethod
+    def _a_entidad(modelo: AuditoriaModel) -> Auditoria:
+        """Convierte un registro de base de datos en una entidad."""
+        auditoria = Auditoria(
+            accion=modelo.accion,
+            detalles=modelo.detalles,
+            fecha=modelo.fecha,
+        )
+        auditoria.id = modelo.id
+        return auditoria
+
+    def crear(self, auditoria: Auditoria) -> Auditoria:
+        """Guarda la auditoría y asigna su ID tras confirmar los cambios."""
+        if not isinstance(auditoria, Auditoria):
+            raise TypeError("La entidad debe ser de tipo Auditoria.")
+
+        if auditoria.id is not None:
+            raise ValueError("Una auditoría nueva no debe tener ID.")
+
+        with self.contexto.transaction() as session:
+            modelo = AuditoriaModel(
+                accion=auditoria.accion,
+                detalles=auditoria.detalles,
+                fecha=auditoria.fecha,
+            )
+            session.add(modelo)
+            session.flush()
+            nuevo_id = modelo.id
+
+        auditoria.id = nuevo_id
+        return auditoria
+
+    def leer_todos(self) -> list[Auditoria]:
+        """Obtiene las auditorías ordenadas por Fecha."""
+        with self.contexto.transaction() as session:
+            consulta = select(AuditoriaModel).order_by(AuditoriaModel.fecha)
+            modelos = session.scalars(consulta)
+
+            return [
+                self._a_entidad(modelo)
+                for modelo in modelos
+            ]

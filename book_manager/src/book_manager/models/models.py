@@ -1,6 +1,6 @@
 """Modelos SQLAlchemy para persistir las entidades de la librería."""
 
-from sqlalchemy import Column, Date, Float, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
+from sqlalchemy import Column, Date, DateTime, Float, ForeignKey, Integer, Numeric, String, Text, UniqueConstraint
 from sqlalchemy.orm import DeclarativeBase, relationship
 
 
@@ -128,3 +128,13 @@ class CotizacionModel(Base):
     moneda_origen = relationship("MonedaModel", foreign_keys=[moneda_origen_id])
     moneda_destino = relationship("MonedaModel", foreign_keys=[moneda_destino_id])
     tipo_cotizacion = relationship("TipoCotizacionModel")
+
+class AuditoriaModel(Base):
+    """Persiste las acciones realizadas en el sistema."""
+
+    __tablename__ = "auditorias"
+
+    id = Column(Integer, primary_key=True)
+    accion = Column(Text, nullable=False)
+    detalles = Column(Text, nullable=False)
+    fecha = Column(DateTime(timezone=True), nullable=False)

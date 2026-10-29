@@ -2,8 +2,9 @@
 
 import json
 import os
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from decimal import Decimal, InvalidOperation, ROUND_HALF_UP
+from functools import wraps
 from pathlib import Path
 from typing import List, Optional
 from urllib.error import HTTPError, URLError
@@ -11,8 +12,10 @@ from urllib.request import Request, urlopen
 
 from dotenv import dotenv_values
 
-from entities.entities import Cotizacion, Editorial, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
+
+from entities.entities import Auditoria, Cotizacion, Editorial, Genero, Libro, Moneda, Precio, Stock, TipoCotizacion
 from repositories.repositories import (
+    IRepositorioAuditoria,
     RepositorioCotizacion,
     RepositorioEditorial,
     RepositorioGenero,
@@ -23,6 +26,51 @@ from repositories.repositories import (
     RepositorioTipoCotizacion,
 )
 
+class ServicioAuditoria:
+    """Registra acciones y proporciona el decorador de auditoría."""
+
+    def __init__(self, repositorio: IRepositorioAuditoria):
+        self.repositorio = repositorio
+
+    def leer_todos(self) -> list[Auditoria]:
+        """Devuelve todas las auditorías registradas."""
+        return self.repositorio.leer_todos()
+
+    @staticmethod
+    def auditar(metodo):
+        """Registra el resultado de un método síncrono mediante el repositorio."""
+        @wraps(metodo)
+        def wrapper(servicio, *args, **kwargs):
+            accion = f"{type(servicio).__name__}.{metodo.__name__}"
+
+            try:
+                resultado = metodo(servicio, *args, **kwargs)
+            except Exception as error:
+                try:
+                    servicio.servicio_auditoria.repositorio.crear(
+                        Auditoria(
+                            accion=accion,
+                            detalles=f"ERROR: {type(error).__name__}: {error}",
+                            fecha=datetime.now(timezone.utc),
+                        )
+                    )
+                except Exception as error_auditoria:
+                    # Conserva el error original si falla la auditoría.
+                    raise error from error_auditoria
+                raise
+
+            servicio.servicio_auditoria.repositorio.crear(
+                Auditoria(
+                    accion=accion,
+                    detalles="Operación completada.",
+                    fecha=datetime.now(timezone.utc),
+                )
+            )
+            return resultado
+
+        return wrapper
+
+
 class ServicioInventario:
     """Gestiona precios y stock asociados a libros mediante claves foráneas."""
 
@@ -32,13 +80,16 @@ class ServicioInventario:
         repositorio_precio: RepositorioPrecio,
         repositorio_stock: RepositorioStock,
         repositorio_moneda: RepositorioMoneda,
+        servicio_auditoria: ServicioAuditoria,
     ):
         """Recibe los repositorios de libros, precios, stock y monedas."""
         self.repositorio_libro = repositorio_libro
         self.repositorio_precio = repositorio_precio
         self.repositorio_stock = repositorio_stock
         self.repositorio_moneda = repositorio_moneda
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear_precio(self, precio: Precio) -> Precio:
         """Crea un precio y rechaza una combinación de libro y moneda existente."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
@@ -63,6 +114,7 @@ class ServicioInventario:
 
         return self.repositorio_precio.crear(precio)
 
+    @ServicioAuditoria.auditar
     def actualizar_precio(self, precio: Precio) -> Precio:
         """Actualiza un precio existente para el libro y la moneda."""
         libro = self.repositorio_libro.leer_por_id(precio.libro_id)
@@ -87,6 +139,7 @@ class ServicioInventario:
 
         return self.repositorio_precio.actualizar(precio)
 
+    @ServicioAuditoria.auditar
     def crear_stock(self, stock: Stock) -> Stock:
         """Crea el stock de un libro que todavía no tiene uno registrado."""
         libro = self.repositorio_libro.leer_por_id(stock.libro_id)
@@ -102,6 +155,7 @@ class ServicioInventario:
 
         return self.repositorio_stock.crear(stock)
 
+    @ServicioAuditoria.auditar
     def actualizar_stock(self, stock: Stock) -> Stock:
         """Actualiza el stock existente de un libro."""
         libro = self.repositorio_libro.leer_por_id(stock.libro_id)
@@ -117,22 +171,27 @@ class ServicioInventario:
 
         return self.repositorio_stock.actualizar(stock)
 
+    @ServicioAuditoria.auditar
     def leer_precios_por_libro(self, libro_id: int) -> List[Precio]:
         """Devuelve los precios del libro, o una lista vacía."""
         return self.repositorio_precio.leer_por_libro(libro_id)
 
+    @ServicioAuditoria.auditar
     def leer_precio_por_libro_y_moneda(self, libro_id: int, moneda_id: int) -> Optional[Precio]:
         """Devuelve el precio en la moneda solicitada, o None."""
         return self.repositorio_precio.leer_por_libro_y_moneda(libro_id, moneda_id)
 
+    @ServicioAuditoria.auditar
     def leer_stock_por_libro(self, libro_id: int) -> Optional[Stock]:
         """Devuelve el stock registrado para el libro, o None si no existe."""
         return self.repositorio_stock.leer_por_libro(libro_id)
 
+    @ServicioAuditoria.auditar
     def eliminar_precio_por_libro_y_moneda(self, libro_id: int, moneda_id: int) -> bool:
         """Elimina ese precio; el libro puede quedar sin precios."""
         return self.repositorio_precio.eliminar(libro_id, moneda_id)
 
+    @ServicioAuditoria.auditar
     def eliminar_stock_por_libro(self, libro_id: int) -> bool:
         """Elimina el registro de stock; el libro permanece guardado."""
         return self.repositorio_stock.eliminar(libro_id)
@@ -144,6 +203,7 @@ class ServicioCotizacion:
     def __init__(
         self,
         repositorio: RepositorioCotizacion,
+        servicio_auditoria: ServicioAuditoria,
         repositorio_moneda: Optional[RepositorioMoneda] = None,
         repositorio_tipo_cotizacion: Optional[RepositorioTipoCotizacion] = None,
     ):
@@ -151,7 +211,9 @@ class ServicioCotizacion:
         self.repositorio = repositorio
         self.repositorio_moneda = repositorio_moneda
         self.repositorio_tipo_cotizacion = repositorio_tipo_cotizacion
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def obtener_cotizaciones(self) -> List[Cotizacion]:
         """Importa cotizaciones de compra y venta, omitiendo registros con errores."""
       
@@ -252,6 +314,7 @@ class ServicioCotizacion:
 
         return cotizaciones
 
+    @ServicioAuditoria.auditar
     def crear(self, cotizacion: Cotizacion) -> Cotizacion:
         """Crea una cotización y rechaza una combinación existente."""
         existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
@@ -268,6 +331,7 @@ class ServicioCotizacion:
 
         return self.repositorio.crear(cotizacion)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, cotizacion: Cotizacion) -> Cotizacion:
         """Actualiza compra y venta de una cotización existente."""
         existente = self.repositorio.leer_por_tipo_moneda_origen_destino_y_fecha(
@@ -284,6 +348,7 @@ class ServicioCotizacion:
 
         return self.repositorio.actualizar(cotizacion)
 
+    @ServicioAuditoria.auditar
     def eliminar(
         self,
         tipo_id: int,
@@ -296,6 +361,7 @@ class ServicioCotizacion:
             tipo_id, moneda_origen_id, moneda_destino_id, fecha
         )
 
+    @ServicioAuditoria.auditar
     def leer_por_tipo_moneda_origen_destino_y_fecha(
         self,
         tipo_id: int,
@@ -308,6 +374,7 @@ class ServicioCotizacion:
             tipo_id, moneda_origen_id, moneda_destino_id, fecha
         )
 
+    @ServicioAuditoria.auditar
     def leer_historico_por_tipo_moneda_origen_moneda_destino(
         self,
         tipo_id: int,
@@ -319,6 +386,7 @@ class ServicioCotizacion:
             tipo_id, moneda_origen_id, moneda_destino_id
         )
 
+    @ServicioAuditoria.auditar
     def leer_ultima_por_tipo_y_monedas(
         self,
         tipo_id: int,
@@ -341,6 +409,7 @@ class ServicioCotizacion:
             default=None,
         )
 
+    @ServicioAuditoria.auditar
     def leer_ultimas_cotizaciones_por_monedas(
         self,
         moneda_origen: Moneda,
@@ -375,6 +444,7 @@ class ServicioCatalogo:
         repositorio_genero: RepositorioGenero,
         repositorio_precio: RepositorioPrecio,
         repositorio_stock: RepositorioStock,
+        servicio_auditoria: ServicioAuditoria,
     ):
         """Recibe los repositorios de libros y sus entidades relacionadas."""
         self.repositorio = repositorio
@@ -382,7 +452,9 @@ class ServicioCatalogo:
         self.repositorio_genero = repositorio_genero
         self.repositorio_precio = repositorio_precio
         self.repositorio_stock = repositorio_stock
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear(self, libro: Libro) -> Libro:
         """Crea un libro sin ID y evita ISBN duplicados."""
         if libro.id is not None:
@@ -407,6 +479,7 @@ class ServicioCatalogo:
 
         return self.repositorio.crear(libro)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, libro: Libro) -> Libro:
         """Actualiza un libro existente y evita ISBN duplicados."""
         if libro.id is None:
@@ -436,6 +509,7 @@ class ServicioCatalogo:
 
         return self.repositorio.actualizar(libro)
 
+    @ServicioAuditoria.auditar
     def eliminar(self, id: int) -> bool:
         """Elimina el libro y sus relaciones mediante la cascada del repositorio.
 
@@ -443,10 +517,12 @@ class ServicioCatalogo:
         """
         return self.repositorio.eliminar(id)
 
+    @ServicioAuditoria.auditar
     def leer_por_id(self, id: int) -> Optional[Libro]:
         """Devuelve el libro con el ID indicado, o None si no existe."""
         return self.repositorio.leer_por_id(id)
 
+    @ServicioAuditoria.auditar
     def listar_todos(self) -> List[Libro]:
         """Devuelve todos los libros del repositorio."""
         return self.repositorio.leer_todos()
@@ -459,11 +535,14 @@ class ServicioEditorial:
         self,
         repositorio: RepositorioEditorial,
         repositorio_libro: RepositorioLibro,
+        servicio_auditoria: ServicioAuditoria,
     ):
-        """Recibe los repositorios de editoriales y libros de la aplicación."""
+        """Recibe los repositorios de editoriales y libros y el servicio de auditoría."""
         self.repositorio = repositorio
         self.repositorio_libro = repositorio_libro
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear(self, editorial: Editorial) -> Editorial:
         """Crea una editorial sin ID y evita nombres duplicados."""
         if editorial.id is not None:
@@ -478,6 +557,7 @@ class ServicioEditorial:
 
         return self.repositorio.crear(editorial)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, editorial: Editorial) -> Editorial:
         """Actualiza una editorial existente y evita nombres duplicados."""
         if editorial.id is None:
@@ -497,14 +577,17 @@ class ServicioEditorial:
 
         return self.repositorio.actualizar(editorial)
 
+    @ServicioAuditoria.auditar
     def leer_por_id(self, id: int) -> Optional[Editorial]:
         """Devuelve la editorial con el ID indicado, o None si no existe."""
         return self.repositorio.leer_por_id(id)
 
+    @ServicioAuditoria.auditar
     def leer_todos(self) -> List[Editorial]:
         """Devuelve todas las editoriales del repositorio."""
         return self.repositorio.leer_todos()
 
+    @ServicioAuditoria.auditar
     def eliminar(self, id: int) -> bool:
         """Elimina la editorial si no está en uso; devuelve False si no existe."""
 
@@ -524,11 +607,14 @@ class ServicioGenero:
         self,
         repositorio: RepositorioGenero,
         repositorio_libro: RepositorioLibro,
+        servicio_auditoria: ServicioAuditoria,
     ):
         """Recibe los repositorios de géneros y libros de la aplicación."""
         self.repositorio = repositorio
         self.repositorio_libro = repositorio_libro
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear(self, genero: Genero) -> Genero:
         """Crea un género sin ID y evita nombres duplicados."""
         if genero.id is not None:
@@ -543,6 +629,7 @@ class ServicioGenero:
 
         return self.repositorio.crear(genero)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, genero: Genero) -> Genero:
         """Actualiza un género existente y evita nombres duplicados."""
         if genero.id is None:
@@ -562,14 +649,17 @@ class ServicioGenero:
 
         return self.repositorio.actualizar(genero)
 
+    @ServicioAuditoria.auditar
     def leer_por_id(self, id: int) -> Optional[Genero]:
         """Devuelve el género con el ID indicado, o None si no existe."""
         return self.repositorio.leer_por_id(id)
 
+    @ServicioAuditoria.auditar
     def leer_todos(self) -> List[Genero]:
         """Devuelve todos los géneros del repositorio."""
         return self.repositorio.leer_todos()
 
+    @ServicioAuditoria.auditar
     def eliminar(self, id: int) -> bool:
         """Elimina el género si no está en uso; devuelve False si no existe."""
 
@@ -588,12 +678,15 @@ class ServicioTipoCotizacion:
     def __init__(
             self, 
             repositorio: RepositorioTipoCotizacion,
-            repositorio_cotizacion: RepositorioCotizacion
+            repositorio_cotizacion: RepositorioCotizacion,
+            servicio_auditoria: ServicioAuditoria,
             ):
         """Recibe los repositorios de tipos de cotización y cotizaciones."""
         self.repositorio = repositorio
         self.repositorio_cotizacion = repositorio_cotizacion
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear(self, tipo_cotizacion: TipoCotizacion) -> TipoCotizacion:
         """Crea un tipo de cotización sin ID y evita nombres duplicados."""
         if tipo_cotizacion.id is not None:
@@ -612,6 +705,7 @@ class ServicioTipoCotizacion:
 
         return self.repositorio.crear(tipo_cotizacion)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, tipo_cotizacion: TipoCotizacion) -> TipoCotizacion:
         """Actualiza un tipo de cotización existente y evita nombres duplicados."""
         if tipo_cotizacion.id is None:
@@ -635,14 +729,17 @@ class ServicioTipoCotizacion:
 
         return self.repositorio.actualizar(tipo_cotizacion)
 
+    @ServicioAuditoria.auditar
     def leer_por_id(self, id: int) -> Optional[TipoCotizacion]:
         """Devuelve el tipo de cotización con el ID indicado, o None si no existe."""
         return self.repositorio.leer_por_id(id)
 
+    @ServicioAuditoria.auditar
     def leer_todos(self) -> List[TipoCotizacion]:
         """Devuelve la lista de tipos de cotización del repositorio."""
         return self.repositorio.leer_todos()
 
+    @ServicioAuditoria.auditar
     def eliminar(self, id: int) -> bool:
         """Elimina el tipo de cotización con el ID indicado, si no está en uso."""
         
@@ -660,12 +757,15 @@ class ServicoMoneda:
     def __init__(self, 
                  repositorio: RepositorioMoneda,
                  repositorio_cotizacion: RepositorioCotizacion,
-                 repositorio_precio: RepositorioPrecio):
+                 repositorio_precio: RepositorioPrecio,
+                 servicio_auditoria: ServicioAuditoria):
         """Recibe los repositorios de monedas, cotizaciones y precios."""
         self.repositorio = repositorio
         self.repositorio_cotizacion = repositorio_cotizacion
         self.repositorio_precio = repositorio_precio
+        self.servicio_auditoria = servicio_auditoria
 
+    @ServicioAuditoria.auditar
     def crear(self, moneda: Moneda) -> Moneda:
         """Crea una moneda sin ID y evita códigos ISO duplicados."""
         if moneda.id is not None:
@@ -680,6 +780,7 @@ class ServicoMoneda:
 
         return self.repositorio.crear(moneda)
 
+    @ServicioAuditoria.auditar
     def actualizar(self, moneda: Moneda) -> Moneda:
         """Actualiza una moneda existente y evita códigos ISO duplicados."""
         if moneda.id is None:
@@ -699,14 +800,17 @@ class ServicoMoneda:
 
         return self.repositorio.actualizar(moneda)
 
+    @ServicioAuditoria.auditar
     def leer_por_id(self, id: int) -> Optional[Moneda]:
         """Devuelve la moneda con el ID indicado, o None si no existe."""
         return self.repositorio.leer_por_id(id)
 
+    @ServicioAuditoria.auditar
     def leer_todos(self) -> List[Moneda]:
         """Devuelve la lista de monedas del repositorio."""
         return self.repositorio.leer_todos()
 
+    @ServicioAuditoria.auditar
     def eliminar(self, id: int) -> bool:
         """Elimina la moneda si no está utilizada en cotizaciones ni precios."""
         if self.repositorio_cotizacion.existe_por_moneda(id):
